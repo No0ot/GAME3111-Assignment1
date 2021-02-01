@@ -105,6 +105,7 @@ public:
 
 	MeshData CreateTriangularPrism(float bottomRadius, float topRadius, float height, uint32 stackCount);
 
+	MeshData CreateDiamond(float middleRadius, float height, uint32 sliceCount, uint32 stackCount);
 	///<summary>
 	/// Creates an mxn grid in the xz-plane with m rows and n columns, centered
 	/// at the origin with the specified width and depth.
