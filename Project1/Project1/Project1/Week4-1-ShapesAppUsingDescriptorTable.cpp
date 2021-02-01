@@ -242,7 +242,7 @@ void ShapesApp::Draw(const GameTimer& gt)
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
     // Clear the back buffer and depth buffer.
-    mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::LightSteelBlue, 0, nullptr);
+    mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::Black, 0, nullptr);
     mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
     // Specify the buffers we are going to render to.
@@ -547,7 +547,10 @@ void ShapesApp::BuildShapeGeometry()
 	GeometryGenerator::MeshData box = geoGen.CreateBox(1.5f, 0.5f, 1.5f, 3);
 	GeometryGenerator::MeshData grid = geoGen.CreateGrid(20.0f, 30.0f, 60, 40);
 	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(0.5f, 20, 20);
-	GeometryGenerator::MeshData cylinder = geoGen.CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20);
+	GeometryGenerator::MeshData cylinder = geoGen.CreateCylinder(1.0f,1.0f,2.0f,20, 20);
+    GeometryGenerator::MeshData cone = geoGen.CreateCone(1.0f, 5.0f, 20, 20);
+    GeometryGenerator::MeshData pyramid = geoGen.CreatePyramid(3.0f, 3.0f, 20);
+    GeometryGenerator::MeshData triprism = geoGen.CreateTriangularPrism(2.0f, 2.0f,4.0f, 20);
 
 	//
 	// We are concatenating all the geometry into one big vertex/index buffer.  So
@@ -559,12 +562,18 @@ void ShapesApp::BuildShapeGeometry()
 	UINT gridVertexOffset = (UINT)box.Vertices.size();
 	UINT sphereVertexOffset = gridVertexOffset + (UINT)grid.Vertices.size();
 	UINT cylinderVertexOffset = sphereVertexOffset + (UINT)sphere.Vertices.size();
+    UINT coneVertexOffset = cylinderVertexOffset + (UINT)cylinder.Vertices.size();
+    UINT pyramidVertexOffset = coneVertexOffset + (UINT)cone.Vertices.size();
+    UINT triprismVertexOffset = pyramidVertexOffset + (UINT)pyramid.Vertices.size();
 
 	// Cache the starting index for each object in the concatenated index buffer.
 	UINT boxIndexOffset = 0;
 	UINT gridIndexOffset = (UINT)box.Indices32.size();
 	UINT sphereIndexOffset = gridIndexOffset + (UINT)grid.Indices32.size();
 	UINT cylinderIndexOffset = sphereIndexOffset + (UINT)sphere.Indices32.size();
+    UINT coneIndexOffset = cylinderIndexOffset + (UINT)cylinder.Indices32.size();
+    UINT pyramidIndexOffset = coneIndexOffset + (UINT)cone.Indices32.size();
+    UINT triprismIndexOffset = pyramidIndexOffset + (UINT)pyramid.Indices32.size();
 
     // Define the SubmeshGeometry that cover different 
     // regions of the vertex/index buffers.
@@ -589,6 +598,21 @@ void ShapesApp::BuildShapeGeometry()
 	cylinderSubmesh.StartIndexLocation = cylinderIndexOffset;
 	cylinderSubmesh.BaseVertexLocation = cylinderVertexOffset;
 
+    SubmeshGeometry coneSubmesh;
+    coneSubmesh.IndexCount = (UINT)cone.Indices32.size();
+    coneSubmesh.StartIndexLocation = coneIndexOffset;
+    coneSubmesh.BaseVertexLocation = coneVertexOffset;
+
+    SubmeshGeometry pyramidSubmesh;
+    pyramidSubmesh.IndexCount = (UINT)pyramid.Indices32.size();
+    pyramidSubmesh.StartIndexLocation = pyramidIndexOffset;
+    pyramidSubmesh.BaseVertexLocation = pyramidVertexOffset;
+
+    SubmeshGeometry triprismSubmesh;
+    triprismSubmesh.IndexCount = (UINT)triprism.Indices32.size();
+    triprismSubmesh.StartIndexLocation = triprismIndexOffset;
+    triprismSubmesh.BaseVertexLocation = triprismVertexOffset;
+
 	//
 	// Extract the vertex elements we are interested in and pack the
 	// vertices of all the meshes into one vertex buffer.
@@ -598,7 +622,10 @@ void ShapesApp::BuildShapeGeometry()
 		box.Vertices.size() +
 		grid.Vertices.size() +
 		sphere.Vertices.size() +
-		cylinder.Vertices.size();
+		cylinder.Vertices.size() +
+        cone.Vertices.size() +
+        pyramid.Vertices.size() +
+        triprism.Vertices.size();
 
 	std::vector<Vertex> vertices(totalVertexCount);
 
@@ -627,11 +654,32 @@ void ShapesApp::BuildShapeGeometry()
 		vertices[k].Color = XMFLOAT4(DirectX::Colors::SteelBlue);
 	}
 
+    for (size_t i = 0; i < cone.Vertices.size(); ++i, ++k)
+    {
+        vertices[k].Pos = cone.Vertices[i].Position;
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::BlueViolet);
+    }
+
+    for (size_t i = 0; i < pyramid.Vertices.size(); ++i, ++k)
+    {
+        vertices[k].Pos = pyramid.Vertices[i].Position;
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::LightGoldenrodYellow);
+    }
+
+    for (size_t i = 0; i < triprism.Vertices.size(); ++i, ++k)
+    {
+        vertices[k].Pos = triprism.Vertices[i].Position;
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::Gray);
+    }
+
 	std::vector<std::uint16_t> indices;
 	indices.insert(indices.end(), std::begin(box.GetIndices16()), std::end(box.GetIndices16()));
 	indices.insert(indices.end(), std::begin(grid.GetIndices16()), std::end(grid.GetIndices16()));
 	indices.insert(indices.end(), std::begin(sphere.GetIndices16()), std::end(sphere.GetIndices16()));
 	indices.insert(indices.end(), std::begin(cylinder.GetIndices16()), std::end(cylinder.GetIndices16()));
+    indices.insert(indices.end(), std::begin(cone.GetIndices16()), std::end(cone.GetIndices16()));
+    indices.insert(indices.end(), std::begin(pyramid.GetIndices16()), std::end(pyramid.GetIndices16()));
+    indices.insert(indices.end(), std::begin(triprism.GetIndices16()), std::end(triprism.GetIndices16()));
 
     const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
     const UINT ibByteSize = (UINT)indices.size()  * sizeof(std::uint16_t);
@@ -660,6 +708,9 @@ void ShapesApp::BuildShapeGeometry()
 	geo->DrawArgs["grid"] = gridSubmesh;
 	geo->DrawArgs["sphere"] = sphereSubmesh;
 	geo->DrawArgs["cylinder"] = cylinderSubmesh;
+    geo->DrawArgs["cone"] = coneSubmesh;
+    geo->DrawArgs["pyramid"] = pyramidSubmesh;
+    geo->DrawArgs["triprism"] = triprismSubmesh;
 
 	mGeometries[geo->Name] = std::move(geo);
 }
@@ -718,9 +769,11 @@ void ShapesApp::BuildFrameResources()
 
 void ShapesApp::BuildRenderItems()
 {
+	UINT objCBIndex = 0;
+
 	auto boxRitem = std::make_unique<RenderItem>();
 	XMStoreFloat4x4(&boxRitem->World, XMMatrixScaling(2.0f, 2.0f, 2.0f)*XMMatrixTranslation(0.0f, 0.5f, 0.0f));
-	boxRitem->ObjCBIndex = 0;
+	boxRitem->ObjCBIndex = objCBIndex++;
 	boxRitem->Geo = mGeometries["shapeGeo"].get();
 	boxRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	boxRitem->IndexCount = boxRitem->Geo->DrawArgs["box"].IndexCount;
@@ -730,7 +783,7 @@ void ShapesApp::BuildRenderItems()
 
     auto gridRitem = std::make_unique<RenderItem>();
     gridRitem->World = MathHelper::Identity4x4();
-	gridRitem->ObjCBIndex = 1;
+	gridRitem->ObjCBIndex = objCBIndex++;
 	gridRitem->Geo = mGeometries["shapeGeo"].get();
 	gridRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     gridRitem->IndexCount = gridRitem->Geo->DrawArgs["grid"].IndexCount;
@@ -738,8 +791,36 @@ void ShapesApp::BuildRenderItems()
     gridRitem->BaseVertexLocation = gridRitem->Geo->DrawArgs["grid"].BaseVertexLocation;
 	mAllRitems.push_back(std::move(gridRitem));
 
-	UINT objCBIndex = 2;
-	for(int i = 0; i < 5; ++i)
+    auto coneRitem = std::make_unique<RenderItem>();
+    XMStoreFloat4x4(&coneRitem->World, XMMatrixTranslation(-8.0f, 1.5f, 12.0f));
+    coneRitem->ObjCBIndex = objCBIndex++;
+    coneRitem->Geo = mGeometries["shapeGeo"].get();
+    coneRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    coneRitem->IndexCount = coneRitem->Geo->DrawArgs["cone"].IndexCount;
+    coneRitem->StartIndexLocation = coneRitem->Geo->DrawArgs["cone"].StartIndexLocation;
+    coneRitem->BaseVertexLocation = coneRitem->Geo->DrawArgs["cone"].BaseVertexLocation;
+    mAllRitems.push_back(std::move(coneRitem));
+
+    auto pyramidRitem = std::make_unique<RenderItem>();
+    XMStoreFloat4x4(&pyramidRitem->World,XMMatrixRotationY(40.0f) * XMMatrixTranslation(-4.0f, 1.5f, 12.0f));
+    pyramidRitem->ObjCBIndex = objCBIndex++;
+    pyramidRitem->Geo = mGeometries["shapeGeo"].get();
+    pyramidRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    pyramidRitem->IndexCount = pyramidRitem->Geo->DrawArgs["pyramid"].IndexCount;
+    pyramidRitem->StartIndexLocation = pyramidRitem->Geo->DrawArgs["pyramid"].StartIndexLocation;
+    pyramidRitem->BaseVertexLocation = pyramidRitem->Geo->DrawArgs["pyramid"].BaseVertexLocation;
+    mAllRitems.push_back(std::move(pyramidRitem));
+
+    auto triprismRitem = std::make_unique<RenderItem>();
+    XMStoreFloat4x4(&triprismRitem->World, XMMatrixRotationY(0.0f) * XMMatrixTranslation(0.0f, 1.5f, 12.0f));
+    triprismRitem->ObjCBIndex = objCBIndex++;
+    triprismRitem->Geo = mGeometries["shapeGeo"].get();
+    triprismRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    triprismRitem->IndexCount = triprismRitem->Geo->DrawArgs["triprism"].IndexCount;
+    triprismRitem->StartIndexLocation = triprismRitem->Geo->DrawArgs["triprism"].StartIndexLocation;
+    triprismRitem->BaseVertexLocation = triprismRitem->Geo->DrawArgs["triprism"].BaseVertexLocation;
+    mAllRitems.push_back(std::move(triprismRitem));
+	/*for(int i = 0; i < 5; ++i)
 	{
 		auto leftCylRitem = std::make_unique<RenderItem>();
 		auto rightCylRitem = std::make_unique<RenderItem>();
@@ -788,7 +869,8 @@ void ShapesApp::BuildRenderItems()
 		mAllRitems.push_back(std::move(rightCylRitem));
 		mAllRitems.push_back(std::move(leftSphereRitem));
 		mAllRitems.push_back(std::move(rightSphereRitem));
-	}
+	}*/
+ 
 
 	// All the render items are opaque.
 	for(auto& e : mAllRitems)
