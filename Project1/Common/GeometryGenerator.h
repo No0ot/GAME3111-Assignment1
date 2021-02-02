@@ -108,6 +108,8 @@ public:
 	MeshData CreateDiamond(float middleRadius, float height, uint32 sliceCount, uint32 stackCount);
 
 	MeshData CreateWedge(float width, float height, float depth, uint32 numSubdivisions);
+
+	MeshData CreateTorus(float majorRadius, float minorRadius, uint32 sliceCount, uint32 sides);
 	///<summary>
 	/// Creates an mxn grid in the xz-plane with m rows and n columns, centered
 	/// at the origin with the specified width and depth.

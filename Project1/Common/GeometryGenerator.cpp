@@ -868,6 +868,61 @@ GeometryGenerator::MeshData GeometryGenerator::CreateWedge(float width, float he
 	return meshData;
 }
 
+GeometryGenerator::MeshData GeometryGenerator::CreateTorus(float majorRadius, float minorRadius, uint32 slideCount, uint32 sides)
+{
+	//major radius is the distance from the center of the torus to perimeter circle
+	//minor radius is the radius of the circles that make up the perimeter of the torus
+	MeshData meshData;
+	Vertex vertex;
+
+	int angleBetweenCircles = 360 / sides;
+	int sliceAngle = 360 / slideCount;
+	float currentRadius = 0;
+	int nextrow;
+
+	//Calculating verticies
+	//Iterating sliceCount for inner ring
+	for (int j = 0; j <= 360; j += sliceAngle)
+	{
+		currentRadius = majorRadius + (minorRadius * cosf(XMConvertToRadians(j)));
+		float z = minorRadius * sinf(XMConvertToRadians(j));
+
+		//Iterating through sides of outer ring
+		for (int i = 0; i <= 360; i += angleBetweenCircles)
+		{
+			float x = currentRadius * cosf(XMConvertToRadians(i));
+			float y = currentRadius * sinf(XMConvertToRadians(i));
+			vertex.Position = XMFLOAT3(x, y, z);
+
+			//Calculating UV's
+			float u = i / 360.0f;
+			float v = 2.0f * j / 360 - 1;
+			if (v < 0)
+				v = -v;
+			vertex.TexC.x = u;
+			vertex.TexC.y = v;
+
+			meshData.Vertices.push_back(vertex);
+		}
+	}
+	//Calculating indicies
+	for (int i = 1, nextrow = sides + 1; i < slideCount + 1; i++)
+	{
+		for (int j = 0; j < sides; j++)
+		{
+			meshData.Indices32.push_back(i * nextrow + j);
+			meshData.Indices32.push_back((i - 1) * nextrow + j);
+			meshData.Indices32.push_back(i * nextrow + (j + 1));
+
+
+			meshData.Indices32.push_back((i - 1) * nextrow + (j + 1));
+			meshData.Indices32.push_back(i * nextrow + (j + 1));
+			meshData.Indices32.push_back((i - 1) * nextrow + j);
+		}
+	}
+	return meshData;
+}
+
 void GeometryGenerator::BuildCylinderTopCap(float bottomRadius, float topRadius, float height,
 											uint32 sliceCount, uint32 stackCount, MeshData& meshData)
 {

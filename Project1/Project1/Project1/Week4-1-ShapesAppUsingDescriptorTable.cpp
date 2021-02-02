@@ -553,6 +553,7 @@ void ShapesApp::BuildShapeGeometry()
     GeometryGenerator::MeshData triprism = geoGen.CreateTriangularPrism(2.0f, 3.0f,4.0f, 20);
     GeometryGenerator::MeshData diamond = geoGen.CreateDiamond(3.0f, 4.0f, 6, 20);
     GeometryGenerator::MeshData wedge = geoGen.CreateWedge(2.0f, 2.0f, 4.5f, 3);
+    GeometryGenerator::MeshData torus = geoGen.CreateTorus(2.0f, 0.5f, 20, 40);
 
 
 	//
@@ -570,6 +571,7 @@ void ShapesApp::BuildShapeGeometry()
     UINT triprismVertexOffset = pyramidVertexOffset + (UINT)pyramid.Vertices.size();
     UINT diamondVertexOffset = triprismVertexOffset + (UINT)triprism.Vertices.size();
     UINT wedgeVertexOffset = diamondVertexOffset + (UINT)diamond.Vertices.size();
+    UINT torusVertexOffset = wedgeVertexOffset + (UINT)wedge.Vertices.size();
 
 	// Cache the starting index for each object in the concatenated index buffer.
 	UINT boxIndexOffset = 0;
@@ -581,6 +583,7 @@ void ShapesApp::BuildShapeGeometry()
     UINT triprismIndexOffset = pyramidIndexOffset + (UINT)pyramid.Indices32.size();
     UINT diamondIndexOffset = triprismIndexOffset + (UINT)triprism.Indices32.size();
     UINT wedgeIndexOffset = diamondIndexOffset + (UINT)diamond.Indices32.size();
+    UINT torusIndexOffset = wedgeIndexOffset + (UINT)wedge.Indices32.size();
 
     // Define the SubmeshGeometry that cover different 
     // regions of the vertex/index buffers.
@@ -630,6 +633,11 @@ void ShapesApp::BuildShapeGeometry()
     wedgeSubmesh.StartIndexLocation = wedgeIndexOffset;
     wedgeSubmesh.BaseVertexLocation = wedgeVertexOffset;
 
+    SubmeshGeometry torusSubmesh;
+    torusSubmesh.IndexCount = (UINT)torus.Indices32.size();
+    torusSubmesh.StartIndexLocation = torusIndexOffset;
+    torusSubmesh.BaseVertexLocation = torusVertexOffset;
+
 	//
 	// Extract the vertex elements we are interested in and pack the
 	// vertices of all the meshes into one vertex buffer.
@@ -644,7 +652,8 @@ void ShapesApp::BuildShapeGeometry()
         pyramid.Vertices.size() +
         triprism.Vertices.size() + 
         diamond.Vertices.size() + 
-        wedge.Vertices.size();
+        wedge.Vertices.size() +
+        torus.Vertices.size();
 
 	std::vector<Vertex> vertices(totalVertexCount);
 
@@ -701,6 +710,11 @@ void ShapesApp::BuildShapeGeometry()
         vertices[k].Pos = wedge.Vertices[i].Position;
         vertices[k].Color = XMFLOAT4(DirectX::Colors::Purple);
     }
+    for (size_t i = 0; i < torus.Vertices.size(); ++i, ++k)
+    {
+        vertices[k].Pos = torus.Vertices[i].Position;
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::Purple);
+    }
 
 	std::vector<std::uint16_t> indices;
 	indices.insert(indices.end(), std::begin(box.GetIndices16()), std::end(box.GetIndices16()));
@@ -712,6 +726,7 @@ void ShapesApp::BuildShapeGeometry()
     indices.insert(indices.end(), std::begin(triprism.GetIndices16()), std::end(triprism.GetIndices16()));
     indices.insert(indices.end(), std::begin(diamond.GetIndices16()), std::end(diamond.GetIndices16()));
     indices.insert(indices.end(), std::begin(wedge.GetIndices16()), std::end(wedge.GetIndices16()));
+    indices.insert(indices.end(), std::begin(torus.GetIndices16()), std::end(torus.GetIndices16()));
 
 
     const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
@@ -746,6 +761,7 @@ void ShapesApp::BuildShapeGeometry()
     geo->DrawArgs["triprism"] = triprismSubmesh;
     geo->DrawArgs["diamond"] = diamondSubmesh;
     geo->DrawArgs["wedge"] = wedgeSubmesh;
+    geo->DrawArgs["torus"] = torusSubmesh;
 
 	mGeometries[geo->Name] = std::move(geo);
 }
@@ -875,6 +891,16 @@ void ShapesApp::BuildRenderItems()
     wedge->StartIndexLocation = wedge->Geo->DrawArgs["wedge"].StartIndexLocation;
     wedge->BaseVertexLocation = wedge->Geo->DrawArgs["wedge"].BaseVertexLocation;
     mAllRitems.push_back(std::move(wedge));
+
+    auto torus = std::make_unique<RenderItem>();
+    XMStoreFloat4x4(&torus->World, XMMatrixTranslation(0.0f, 4.0f, 0.0f));
+    torus->ObjCBIndex = objCBIndex++;
+    torus->Geo = mGeometries["shapeGeo"].get();
+    torus->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    torus->IndexCount = torus->Geo->DrawArgs["torus"].IndexCount;
+    torus->StartIndexLocation = torus->Geo->DrawArgs["torus"].StartIndexLocation;
+    torus->BaseVertexLocation = torus->Geo->DrawArgs["torus"].BaseVertexLocation;
+    mAllRitems.push_back(std::move(torus));
 	/*for(int i = 0; i < 5; ++i)
 	{
 		auto leftCylRitem = std::make_unique<RenderItem>();
