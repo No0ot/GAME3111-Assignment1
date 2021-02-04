@@ -80,6 +80,7 @@ private:
     void BuildFrameResources();
     void BuildRenderItems();
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems);
+    void createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, std::string shapeName);
  
 private:
 
@@ -817,6 +818,18 @@ void ShapesApp::BuildFrameResources()
             1, (UINT)mAllRitems.size()));
     }
 }
+void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, std::string shapeName)
+{
+    auto temp = std::make_unique<RenderItem>();
+    XMStoreFloat4x4(&temp->World, XMMatrixScaling(scaling.x, scaling.y, scaling.z) * XMMatrixTranslation(translation.x, translation.y, translation.z));
+    temp->ObjCBIndex = objIndex++;
+    temp->Geo = mGeometries["shapeGeo"].get();
+    temp->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    temp->IndexCount = temp->Geo->DrawArgs[shapeName].IndexCount;
+    temp->StartIndexLocation = temp->Geo->DrawArgs[shapeName].StartIndexLocation;
+    temp->BaseVertexLocation = temp->Geo->DrawArgs[shapeName].BaseVertexLocation;
+    mAllRitems.push_back(std::move(temp));
+}
 
 void ShapesApp::BuildRenderItems()
 {
@@ -901,6 +914,11 @@ void ShapesApp::BuildRenderItems()
     torus->StartIndexLocation = torus->Geo->DrawArgs["torus"].StartIndexLocation;
     torus->BaseVertexLocation = torus->Geo->DrawArgs["torus"].BaseVertexLocation;
     mAllRitems.push_back(std::move(torus));
+
+    //New function that can create any shape
+    //First XMFloat3 is scale, second is translation
+    createShapeInWorld(objCBIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 4.0f, 4.0f), "torus");
+    createShapeInWorld(objCBIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 4.0f, -4.0f), "wedge");
 	/*for(int i = 0; i < 5; ++i)
 	{
 		auto leftCylRitem = std::make_unique<RenderItem>();
