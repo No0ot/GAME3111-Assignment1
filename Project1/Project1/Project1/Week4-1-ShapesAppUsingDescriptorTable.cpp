@@ -80,7 +80,12 @@ private:
     void BuildFrameResources();
     void BuildRenderItems();
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems);
-    void createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, std::string shapeName);
+    void createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation,float angle, std::string shapeName);
+    void createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, XMFLOAT3 angle, std::string shapeName);
+    void createTower(UINT& objIndex, XMFLOAT3 location);
+    void createWall(UINT& objIndex, XMFLOAT3 location, float rotation, int sign);
+    void createMainGate(UINT& objIndex, XMFLOAT3 location);
+    void createCastlePerimeter(UINT& objIndex);
  
 private:
 
@@ -118,7 +123,7 @@ private:
     float mTheta = 1.5f*XM_PI;
     float mPhi = 0.2f*XM_PI;
     float mRadius = 15.0f;
-
+    XMVECTOR target = XMVectorZero();
     POINT mLastMousePos;
 };
 
@@ -311,7 +316,7 @@ void ShapesApp::OnMouseMove(WPARAM btnState, int x, int y)
         mPhi += dy;
 
         // Restrict the angle mPhi.
-        mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
+        //mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
     }
     else if((btnState & MK_RBUTTON) != 0)
     {
@@ -323,7 +328,7 @@ void ShapesApp::OnMouseMove(WPARAM btnState, int x, int y)
         mRadius += dx - dy;
 
         // Restrict the radius.
-        mRadius = MathHelper::Clamp(mRadius, 5.0f, 150.0f);
+        //mRadius = MathHelper::Clamp(mRadius, 5.0f, 150.0f);
     }
 
     mLastMousePos.x = x;
@@ -340,17 +345,40 @@ void ShapesApp::OnKeyboardInput(const GameTimer& gt)
  
 void ShapesApp::UpdateCamera(const GameTimer& gt)
 {
+    XMVECTOR right = XMVectorSet(0.01f, 0.0f, 0.0f, 1.0f);
+    XMVECTOR upward = XMVectorSet(0.00f, 0.01f, 0.0f, 1.0f);
 	// Convert Spherical to Cartesian coordinates.
 	mEyePos.x = mRadius*sinf(mPhi)*cosf(mTheta);
 	mEyePos.z = mRadius*sinf(mPhi)*sinf(mTheta);
 	mEyePos.y = mRadius*cosf(mPhi);
 
+    //These move the angle the camera is looking at
+    //Left
+    if (GetAsyncKeyState('A')) {
+        target += (-right);
+    }
+    //Right
+    else if (GetAsyncKeyState('D')) {
+        target += right;
+    }
+    //Down
+    if (GetAsyncKeyState('S')) {
+        target += (-upward);
+    }
+    //Up
+    else if (GetAsyncKeyState('W')) {
+        target += upward;
+    }
+
+
 	// Build the view matrix.
 	XMVECTOR pos = XMVectorSet(mEyePos.x, mEyePos.y, mEyePos.z, 1.0f);
-	XMVECTOR target = XMVectorZero();
 	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
 	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+    //Move Right and Left
+
+    
 	XMStoreFloat4x4(&mView, view);
 }
 
@@ -545,16 +573,20 @@ void ShapesApp::BuildShadersAndInputLayout()
 void ShapesApp::BuildShapeGeometry()
 {
     GeometryGenerator geoGen;
-	GeometryGenerator::MeshData box = geoGen.CreateBox(1.5f, 0.5f, 1.5f, 3);
-	GeometryGenerator::MeshData grid = geoGen.CreateGrid(20.0f, 30.0f, 60, 40);
+	GeometryGenerator::MeshData box = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3);
+	GeometryGenerator::MeshData grid = geoGen.CreateGrid(40.0f, 40.0f, 60, 40);
 	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(0.5f, 20, 20);
-	GeometryGenerator::MeshData cylinder = geoGen.CreateCylinder(2.0f,2.0f,4.0f,4,20);
+	GeometryGenerator::MeshData cylinder = geoGen.CreateCylinder(1.0f,0.75f,1.0f,4,20);
     GeometryGenerator::MeshData cone = geoGen.CreateCone(1.0f, 5.0f, 20, 20);
     GeometryGenerator::MeshData pyramid = geoGen.CreatePyramid(3.0f, 3.0f, 20);
     GeometryGenerator::MeshData triprism = geoGen.CreateTriangularPrism(2.0f, 3.0f,4.0f, 20);
     GeometryGenerator::MeshData diamond = geoGen.CreateDiamond(3.0f, 4.0f, 6, 20);
-    GeometryGenerator::MeshData wedge = geoGen.CreateWedge(2.0f, 2.0f, 4.5f, 3);
-    GeometryGenerator::MeshData torus = geoGen.CreateTorus(2.0f, 0.5f, 20, 40);
+    GeometryGenerator::MeshData wedge = geoGen.CreateWedge(1.0f, 1.0f, 1.0f, 3);
+    GeometryGenerator::MeshData torus = geoGen.CreateTorus(1.0f, 0.25f, 10, 12);
+    GeometryGenerator::MeshData grayBox = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3);
+    GeometryGenerator::MeshData brownBox = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3);
+    GeometryGenerator::MeshData brownCylinder = geoGen.CreateCylinder(1.0f, 1.0f, 1.0f, 14, 20);
+    
 
 
 	//
@@ -573,6 +605,9 @@ void ShapesApp::BuildShapeGeometry()
     UINT diamondVertexOffset = triprismVertexOffset + (UINT)triprism.Vertices.size();
     UINT wedgeVertexOffset = diamondVertexOffset + (UINT)diamond.Vertices.size();
     UINT torusVertexOffset = wedgeVertexOffset + (UINT)wedge.Vertices.size();
+    UINT grayBoxVertexOffset = torusVertexOffset + (UINT)torus.Vertices.size();
+    UINT brownBoxVertexOffset = grayBoxVertexOffset + (UINT)grayBox.Vertices.size();
+    UINT brownCylinderVertexOffset = brownBoxVertexOffset + (UINT)brownBox.Vertices.size();
 
 	// Cache the starting index for each object in the concatenated index buffer.
 	UINT boxIndexOffset = 0;
@@ -585,6 +620,9 @@ void ShapesApp::BuildShapeGeometry()
     UINT diamondIndexOffset = triprismIndexOffset + (UINT)triprism.Indices32.size();
     UINT wedgeIndexOffset = diamondIndexOffset + (UINT)diamond.Indices32.size();
     UINT torusIndexOffset = wedgeIndexOffset + (UINT)wedge.Indices32.size();
+    UINT grayBoxIndexOffset = torusIndexOffset + (UINT)torus.Indices32.size();
+    UINT brownBoxIndexOffset = grayBoxIndexOffset + (UINT)grayBox.Indices32.size();
+    UINT brownCylinderIndexOffset = brownBoxIndexOffset + (UINT)brownBox.Indices32.size();
 
     // Define the SubmeshGeometry that cover different 
     // regions of the vertex/index buffers.
@@ -639,22 +677,43 @@ void ShapesApp::BuildShapeGeometry()
     torusSubmesh.StartIndexLocation = torusIndexOffset;
     torusSubmesh.BaseVertexLocation = torusVertexOffset;
 
+    SubmeshGeometry grayBoxSubmesh;
+    grayBoxSubmesh.IndexCount = (UINT)grayBox.Indices32.size();
+    grayBoxSubmesh.StartIndexLocation = grayBoxIndexOffset;
+    grayBoxSubmesh.BaseVertexLocation = grayBoxVertexOffset;
+
+    SubmeshGeometry brownBoxSubmesh;
+    brownBoxSubmesh.IndexCount = (UINT)brownBox.Indices32.size();
+    brownBoxSubmesh.StartIndexLocation = brownBoxIndexOffset;
+    brownBoxSubmesh.BaseVertexLocation = brownBoxVertexOffset;
+
+    SubmeshGeometry brownCylinderSubmesh;
+    brownCylinderSubmesh.IndexCount = (UINT)brownCylinder.Indices32.size();
+    brownCylinderSubmesh.StartIndexLocation = brownCylinderIndexOffset;
+    brownCylinderSubmesh.BaseVertexLocation = brownCylinderVertexOffset;
+
+
+
+
 	//
 	// Extract the vertex elements we are interested in and pack the
 	// vertices of all the meshes into one vertex buffer.
 	//
 
-	auto totalVertexCount =
-		box.Vertices.size() +
-		grid.Vertices.size() +
-		sphere.Vertices.size() +
-		cylinder.Vertices.size() +
+    auto totalVertexCount =
+        box.Vertices.size() +
+        grid.Vertices.size() +
+        sphere.Vertices.size() +
+        cylinder.Vertices.size() +
         cone.Vertices.size() +
         pyramid.Vertices.size() +
-        triprism.Vertices.size() + 
-        diamond.Vertices.size() + 
+        triprism.Vertices.size() +
+        diamond.Vertices.size() +
         wedge.Vertices.size() +
-        torus.Vertices.size();
+        torus.Vertices.size() +
+        grayBox.Vertices.size() +
+        brownBox.Vertices.size() +
+        brownCylinder.Vertices.size();
 
 	std::vector<Vertex> vertices(totalVertexCount);
 
@@ -662,7 +721,7 @@ void ShapesApp::BuildShapeGeometry()
 	for(size_t i = 0; i < box.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = box.Vertices[i].Position;
-        vertices[k].Color = XMFLOAT4(DirectX::Colors::DarkGreen);
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::Wheat);
 	}
 
 	for(size_t i = 0; i < grid.Vertices.size(); ++i, ++k)
@@ -680,7 +739,7 @@ void ShapesApp::BuildShapeGeometry()
 	for(size_t i = 0; i < cylinder.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = cylinder.Vertices[i].Position;
-		vertices[k].Color = XMFLOAT4(DirectX::Colors::SteelBlue);
+		vertices[k].Color = XMFLOAT4(DirectX::Colors::Wheat);
 	}
 
     for (size_t i = 0; i < cone.Vertices.size(); ++i, ++k)
@@ -709,12 +768,27 @@ void ShapesApp::BuildShapeGeometry()
     for (size_t i = 0; i < wedge.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = wedge.Vertices[i].Position;
-        vertices[k].Color = XMFLOAT4(DirectX::Colors::Purple);
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::SaddleBrown);
     }
     for (size_t i = 0; i < torus.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = torus.Vertices[i].Position;
-        vertices[k].Color = XMFLOAT4(DirectX::Colors::Purple);
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::Black);
+    }
+    for (size_t i = 0; i < grayBox.Vertices.size(); ++i, ++k)
+    {
+        vertices[k].Pos = grayBox.Vertices[i].Position;
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::DarkGray);
+    }
+    for (size_t i = 0; i < brownBox.Vertices.size(); ++i, ++k)
+    {
+        vertices[k].Pos = brownBox.Vertices[i].Position;
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::BurlyWood);
+    }
+    for (size_t i = 0; i < brownCylinder.Vertices.size(); ++i, ++k)
+    {
+        vertices[k].Pos = brownCylinder.Vertices[i].Position;
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::Black);
     }
 
 	std::vector<std::uint16_t> indices;
@@ -728,6 +802,9 @@ void ShapesApp::BuildShapeGeometry()
     indices.insert(indices.end(), std::begin(diamond.GetIndices16()), std::end(diamond.GetIndices16()));
     indices.insert(indices.end(), std::begin(wedge.GetIndices16()), std::end(wedge.GetIndices16()));
     indices.insert(indices.end(), std::begin(torus.GetIndices16()), std::end(torus.GetIndices16()));
+    indices.insert(indices.end(), std::begin(grayBox.GetIndices16()), std::end(grayBox.GetIndices16()));
+    indices.insert(indices.end(), std::begin(brownBox.GetIndices16()), std::end(brownBox.GetIndices16()));
+    indices.insert(indices.end(), std::begin(brownCylinder.GetIndices16()), std::end(brownCylinder.GetIndices16()));
 
 
     const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
@@ -763,6 +840,9 @@ void ShapesApp::BuildShapeGeometry()
     geo->DrawArgs["diamond"] = diamondSubmesh;
     geo->DrawArgs["wedge"] = wedgeSubmesh;
     geo->DrawArgs["torus"] = torusSubmesh;
+    geo->DrawArgs["grayBox"] = grayBoxSubmesh;
+    geo->DrawArgs["brownBox"] = brownBoxSubmesh;
+    geo->DrawArgs["brownCylinder"] = brownCylinderSubmesh;
 
 	mGeometries[geo->Name] = std::move(geo);
 }
@@ -818,10 +898,28 @@ void ShapesApp::BuildFrameResources()
             1, (UINT)mAllRitems.size()));
     }
 }
-void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, std::string shapeName)
+
+void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation,float angle, std::string shapeName)
 {
     auto temp = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&temp->World, XMMatrixScaling(scaling.x, scaling.y, scaling.z) * XMMatrixTranslation(translation.x, translation.y, translation.z));
+    XMStoreFloat4x4(&temp->World, XMMatrixScaling(scaling.x, scaling.y, scaling.z) * XMMatrixRotationY(XMConvertToRadians(angle)) * XMMatrixTranslation(translation.x, translation.y + (0.5*scaling.y), translation.z));
+
+    temp->ObjCBIndex = objIndex++;
+    temp->Geo = mGeometries["shapeGeo"].get();
+    temp->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    temp->IndexCount = temp->Geo->DrawArgs[shapeName].IndexCount;
+    temp->StartIndexLocation = temp->Geo->DrawArgs[shapeName].StartIndexLocation;
+    temp->BaseVertexLocation = temp->Geo->DrawArgs[shapeName].BaseVertexLocation;
+    mAllRitems.push_back(std::move(temp));
+}
+
+//This function allows for rotation on all axis
+void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, XMFLOAT3 angle, std::string shapeName)
+{
+    auto temp = std::make_unique<RenderItem>();
+    XMStoreFloat4x4(&temp->World, XMMatrixScaling(scaling.x, scaling.y, scaling.z) * XMMatrixRotationRollPitchYaw(XMConvertToRadians(angle.x), 
+        XMConvertToRadians(angle.y), XMConvertToRadians(angle.z))* XMMatrixTranslation(translation.x, translation.y + (0.5 * scaling.y), translation.z));
+
     temp->ObjCBIndex = objIndex++;
     temp->Geo = mGeometries["shapeGeo"].get();
     temp->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -835,6 +933,17 @@ void ShapesApp::BuildRenderItems()
 {
 	UINT objCBIndex = 0;
 
+    auto gridRitem = std::make_unique<RenderItem>();
+    gridRitem->World = MathHelper::Identity4x4();
+    gridRitem->ObjCBIndex = objCBIndex++;
+    gridRitem->Geo = mGeometries["shapeGeo"].get();
+    gridRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    gridRitem->IndexCount = gridRitem->Geo->DrawArgs["grid"].IndexCount;
+    gridRitem->StartIndexLocation = gridRitem->Geo->DrawArgs["grid"].StartIndexLocation;
+    gridRitem->BaseVertexLocation = gridRitem->Geo->DrawArgs["grid"].BaseVertexLocation;
+    mAllRitems.push_back(std::move(gridRitem));
+
+
 	auto boxRitem = std::make_unique<RenderItem>();
 	XMStoreFloat4x4(&boxRitem->World, XMMatrixScaling(2.0f, 2.0f, 2.0f)*XMMatrixTranslation(0.0f, 0.5f, 0.0f));
 	boxRitem->ObjCBIndex = objCBIndex++;
@@ -845,16 +954,12 @@ void ShapesApp::BuildRenderItems()
 	boxRitem->BaseVertexLocation = boxRitem->Geo->DrawArgs["box"].BaseVertexLocation;
 	mAllRitems.push_back(std::move(boxRitem));
 
-    auto gridRitem = std::make_unique<RenderItem>();
-    gridRitem->World = MathHelper::Identity4x4();
-	gridRitem->ObjCBIndex = objCBIndex++;
-	gridRitem->Geo = mGeometries["shapeGeo"].get();
-	gridRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    gridRitem->IndexCount = gridRitem->Geo->DrawArgs["grid"].IndexCount;
-    gridRitem->StartIndexLocation = gridRitem->Geo->DrawArgs["grid"].StartIndexLocation;
-    gridRitem->BaseVertexLocation = gridRitem->Geo->DrawArgs["grid"].BaseVertexLocation;
-	mAllRitems.push_back(std::move(gridRitem));
 
+    createCastlePerimeter(objCBIndex);
+
+
+
+    /*
     auto coneRitem = std::make_unique<RenderItem>();
     XMStoreFloat4x4(&coneRitem->World, XMMatrixTranslation(-8.0f, 1.5f, 12.0f));
     coneRitem->ObjCBIndex = objCBIndex++;
@@ -913,12 +1018,12 @@ void ShapesApp::BuildRenderItems()
     torus->IndexCount = torus->Geo->DrawArgs["torus"].IndexCount;
     torus->StartIndexLocation = torus->Geo->DrawArgs["torus"].StartIndexLocation;
     torus->BaseVertexLocation = torus->Geo->DrawArgs["torus"].BaseVertexLocation;
-    mAllRitems.push_back(std::move(torus));
+    mAllRitems.push_back(std::move(torus));*/
 
     //New function that can create any shape
     //First XMFloat3 is scale, second is translation
-    createShapeInWorld(objCBIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 4.0f, 4.0f), "torus");
-    createShapeInWorld(objCBIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 4.0f, -4.0f), "wedge");
+    //createShapeInWorld(objCBIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 4.0f, 4.0f),90.0f, "torus");
+    //createShapeInWorld(objCBIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 4.0f, -4.0f),0.0f, "wedge");
 	/*for(int i = 0; i < 5; ++i)
 	{
 		auto leftCylRitem = std::make_unique<RenderItem>();
@@ -1004,4 +1109,144 @@ void ShapesApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::v
     }
 }
 
+void ShapesApp::createTower(UINT& objIndex, XMFLOAT3 location)
+{
+    //Creates main tower structure
+    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 7.0f, 2.0f), XMFLOAT3(location.x, location.y + 1.0f, location.z), 45.0f, "cylinder");
+    //Creates gray stone foundation 
+    createShapeInWorld(objIndex, XMFLOAT3(3.0f, 1.0f, 3.0f), XMFLOAT3(location.x, location.y, location.z), 0.0f, "grayBox");
+    //Creates platoform at top of towers 
+    createShapeInWorld(objIndex, XMFLOAT3(3.0f, 0.5f, 3.0f), XMFLOAT3(location.x, location.y + 8.0f, location.z), 0.0f, "box");
+    //Creates thin platform "walkway" for better color variety
+   createShapeInWorld(objIndex, XMFLOAT3(2.5f, 0.5f, 2.5f), XMFLOAT3(location.x, location.y + 8.1f, location.z), 0.0f, "brownBox");
+
+    //Creates pirapits for tops of towers
+    for (int i = 0; i < 7; i++)
+    {
+        float temp = i;
+
+        if (i % 2 == 0)
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.5f + (temp / 2), location.y + 8.5f, location.z - 1.5f), 0.0f, "box");
+        else
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.5f + (temp / 2), location.y + 8.5f, location.z -1.5f), 0.0f, "box");
+    }
+    for (int i = 0; i < 7; i++)
+    {
+        float temp = i;
+
+        if (i % 2 == 0)
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.5f + (temp / 2), location.y + 8.5f, location.z + 1.5f), 0.0f, "box");
+        else
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.5f + (temp / 2), location.y + 8.5f, location.z + 1.5f), 0.0f, "box");
+    }
+
+    for (int i = 0; i < 5; i++)
+    {
+        float temp = i;
+
+        if (i % 2 == 0)
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.5f , location.y + 8.5f, location.z - 1.0f + (temp / 2)), 0.0f, "box");
+        else
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.5f, location.y + 8.5f, location.z - 1.0f + (temp / 2)), 0.0f, "box");
+    }
+
+    for (int i = 0; i < 5; i++)
+    {
+        float temp = i;
+
+        if (i % 2 == 0)
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x + 1.5f, location.y + 8.5f, location.z - 1.0f + (temp / 2)), 0.0f, "box");
+        else
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x + 1.5f, location.y + 8.5f, location.z - 1.0f + (temp / 2)), 0.0f, "box");
+    }
+}
+
+void ShapesApp::createWall(UINT& objIndex, XMFLOAT3 location, float rotation, int sign)
+{
+    //Signs moves the piratits to correct location on wall depending on walls rotations
+
+    //Creates gray stone foundation 
+    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), rotation, "grayBox");
+    //Creates main wall structure
+    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 4.0f, 2.0f), XMFLOAT3(location.x, location.y +1.0f, location.z), rotation, "box");
+    //Creates thin platform "walkway" for better color variety
+    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 0.1f, 2.0f), XMFLOAT3(location.x, location.y + 5.0f, location.z), rotation, "brownBox");
+ 
+    //Creates pirapits for tops of walls
+    if (rotation == 0.0f)
+    {
+        for (int i = 0; i < 40; i++)
+        {
+            float temp = i;
+
+            if (i % 2 == 0)
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 10.0f + (temp / 2), location.y + 5.0f, location.z - 1.0f * sign), rotation, "box");
+            else
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 10.0f + (temp / 2), location.y + 5.0f, location.z - 1.0f * sign), rotation, "box");
+        }
+    }
+    else
+    {
+        for (int i = 0; i < 40; i++)
+        {
+            float temp = i;
+
+            if (i % 2 == 0)
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z - 10.0f + (temp / 2)), rotation, "box");
+            else
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z - 1.0f - 10.0f + (temp / 2)), rotation, "box");
+        }
+    }
+
+}
+void ShapesApp::createMainGate(UINT& objIndex, XMFLOAT3 location)
+{
+    //Creates gray stone foundation 
+    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), 0.0f, "grayBox");
+    //Creates left portion of main wall
+    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 4.0f, 2.0f), XMFLOAT3(location.x -6.0f, location.y + 1.0f, location.z), 0.0f, "box");
+    //Creates right portion of main wall
+    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 4.0f, 2.0f), XMFLOAT3(location.x + 6.0f, location.y + 1.0f, location.z), 0.0f, "box");
+    //Creates fills in gap below pirapits at center of wall
+    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 1.0f, 2.0f), XMFLOAT3(location.x , location.y + 4.0f, location.z), 0.0f, "box");
+    //Creats "drawbridge" 
+    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 1.0f, 5.0f), XMFLOAT3(location.x, location.y, location.z-3.5f), 0.0f, "wedge");
+    //Creates thin platform "walkway" for better color variety
+    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 0.1f, 2.0f), XMFLOAT3(location.x, location.y + 5.0f, location.z), 0.0f, "brownBox");
+    //Creates left drawbridge rope
+    createShapeInWorld(objIndex, XMFLOAT3(0.05f, 0.05f, 2.75f), XMFLOAT3(location.x - 3.0f, location.y + 2.0f, location.z - 2.75f), XMFLOAT3(-45.0f,0.0f,60.0f), "brownCylinder");
+    //Creates right drawbridge rope
+    createShapeInWorld(objIndex, XMFLOAT3(0.05f, 0.05f, 2.75f), XMFLOAT3(location.x + 3.0f, location.y + 2.0f, location.z - 2.75f), XMFLOAT3(-45.0f, 0.0f, 40.0f), "brownCylinder");
+    
+    //Creates pirapits for tops of walls
+    for (int i = 0; i < 40; i++)
+    {
+        float temp = i;
+
+        if (i % 2 == 0)
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 10.0f + (temp / 2), location.y + 5.0f, location.z  - 1.0f),0.0f, "box");
+        else
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 10.0f + (temp / 2), location.y + 5.0f, location.z - 1.0f), 0.0f, "box");
+    }
+}
+void ShapesApp::createCastlePerimeter(UINT& objIndex)
+{
+    //Creates front left tower 
+    createTower(objIndex, XMFLOAT3(-10.0f, 0.0f, -10.0f));
+    //Creates back left tower 
+    createTower(objIndex, XMFLOAT3(-10.0f, 0.0f, 10.0f));
+    //Creates front right tower 
+    createTower(objIndex, XMFLOAT3(10.0f, 0.0f, -10.0f));
+    //Creates back right tower 
+    createTower(objIndex, XMFLOAT3(10.0f, 0.0f, 10.0f));
+
+    //Creates right wall
+    createWall(objIndex, XMFLOAT3(0.0f, 0.0f, 10.0f), 0.f, -1);
+    //Creates left wall
+    createWall(objIndex, XMFLOAT3(-10.0f, 0.0f, 0.0f), 90.f, 1);
+    //Creates back wall
+    createWall(objIndex, XMFLOAT3(10.0f, 0.0f, 0.0f), 90.f, -1);
+    //Creates front gate
+    createMainGate(objIndex, XMFLOAT3(0.0f, 0.0f, -10.0f));
+}
 
