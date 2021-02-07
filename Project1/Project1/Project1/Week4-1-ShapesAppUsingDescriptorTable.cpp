@@ -87,6 +87,8 @@ private:
     void createMainGate(UINT& objIndex, XMFLOAT3 location);
     void createCastlePerimeter(UINT& objIndex);
     void createTowerDoors(UINT& objIndex);
+    void createCastleTowers(UINT& objIndex);
+    void createMainCastle(UINT& objIndex);
 
  
 private:
@@ -579,15 +581,16 @@ void ShapesApp::BuildShapeGeometry()
 	GeometryGenerator::MeshData grid = geoGen.CreateGrid(40.0f, 40.0f, 60, 40);
 	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(0.05f, 20, 20);
 	GeometryGenerator::MeshData cylinder = geoGen.CreateCylinder(1.0f,0.75f,1.0f,4,20);
-    GeometryGenerator::MeshData cone = geoGen.CreateCone(1.0f, 5.0f, 20, 20);
+    GeometryGenerator::MeshData cone = geoGen.CreateCone(1.0f, 1.0f, 20, 20);
     GeometryGenerator::MeshData pyramid = geoGen.CreatePyramid(1.0f, 1.0f, 20);
-    GeometryGenerator::MeshData triprism = geoGen.CreateTriangularPrism(2.0f, 3.0f,4.0f, 20);
-    GeometryGenerator::MeshData diamond = geoGen.CreateDiamond(3.0f, 4.0f, 6, 20);
+    GeometryGenerator::MeshData triprism = geoGen.CreateTriangularPrism(1.0f, 0.1f,1.0f, 20);
+    GeometryGenerator::MeshData diamond = geoGen.CreateDiamond(3.0f, 4.0f, 4, 20);
     GeometryGenerator::MeshData wedge = geoGen.CreateWedge(1.0f, 1.0f, 1.0f, 3);
     GeometryGenerator::MeshData torus = geoGen.CreateTorus(1.0f, 0.25f, 10, 12);
     GeometryGenerator::MeshData grayBox = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3);
     GeometryGenerator::MeshData brownBox = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3);
     GeometryGenerator::MeshData blackCylinder = geoGen.CreateCylinder(1.0f, 1.0f, 1.0f, 14, 20);
+    GeometryGenerator::MeshData roundcylinder = geoGen.CreateCylinder(1.0f, 1.0f, 1.0f, 20, 20);
     
     
 
@@ -611,6 +614,7 @@ void ShapesApp::BuildShapeGeometry()
     UINT grayBoxVertexOffset = torusVertexOffset + (UINT)torus.Vertices.size();
     UINT brownBoxVertexOffset = grayBoxVertexOffset + (UINT)grayBox.Vertices.size();
     UINT blackCylinderVertexOffset = brownBoxVertexOffset + (UINT)brownBox.Vertices.size();
+    UINT roundCylinderVertexOffset = blackCylinderVertexOffset + (UINT)blackCylinder.Vertices.size();
 
 	// Cache the starting index for each object in the concatenated index buffer.
 	UINT boxIndexOffset = 0;
@@ -626,6 +630,7 @@ void ShapesApp::BuildShapeGeometry()
     UINT grayBoxIndexOffset = torusIndexOffset + (UINT)torus.Indices32.size();
     UINT brownBoxIndexOffset = grayBoxIndexOffset + (UINT)grayBox.Indices32.size();
     UINT blackCylinderIndexOffset = brownBoxIndexOffset + (UINT)brownBox.Indices32.size();
+    UINT roundCylinderIndexOffset = blackCylinderIndexOffset + (UINT)blackCylinder.Indices32.size();
 
     // Define the SubmeshGeometry that cover different 
     // regions of the vertex/index buffers.
@@ -695,7 +700,10 @@ void ShapesApp::BuildShapeGeometry()
     blackCylinderSubmesh.StartIndexLocation = blackCylinderIndexOffset;
     blackCylinderSubmesh.BaseVertexLocation = blackCylinderVertexOffset;
 
-
+    SubmeshGeometry roundCylinderSubmesh;
+    roundCylinderSubmesh.IndexCount = (UINT)roundcylinder.Indices32.size();
+    roundCylinderSubmesh.StartIndexLocation = roundCylinderIndexOffset;
+    roundCylinderSubmesh.BaseVertexLocation = roundCylinderVertexOffset;
 
 
 	//
@@ -716,7 +724,8 @@ void ShapesApp::BuildShapeGeometry()
         torus.Vertices.size() +
         grayBox.Vertices.size() +
         brownBox.Vertices.size() +
-        blackCylinder.Vertices.size();
+        blackCylinder.Vertices.size() +
+        roundcylinder.Vertices.size();
 
 	std::vector<Vertex> vertices(totalVertexCount);
 
@@ -748,7 +757,7 @@ void ShapesApp::BuildShapeGeometry()
     for (size_t i = 0; i < cone.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = cone.Vertices[i].Position;
-        vertices[k].Color = XMFLOAT4(DirectX::Colors::BlueViolet);
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::MidnightBlue);
     }
 
     for (size_t i = 0; i < pyramid.Vertices.size(); ++i, ++k)
@@ -760,13 +769,13 @@ void ShapesApp::BuildShapeGeometry()
     for (size_t i = 0; i < triprism.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = triprism.Vertices[i].Position;
-        vertices[k].Color = XMFLOAT4(DirectX::Colors::Gray);
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::Indigo);
     }
 
     for (size_t i = 0; i < diamond.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = diamond.Vertices[i].Position;
-        vertices[k].Color = XMFLOAT4(DirectX::Colors::Yellow);
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::SpringGreen);
     }
     for (size_t i = 0; i < wedge.Vertices.size(); ++i, ++k)
     {
@@ -793,6 +802,11 @@ void ShapesApp::BuildShapeGeometry()
         vertices[k].Pos = blackCylinder.Vertices[i].Position;
         vertices[k].Color = XMFLOAT4(DirectX::Colors::Black);
     }
+    for (size_t i = 0; i < roundcylinder.Vertices.size(); ++i, ++k)
+    {
+        vertices[k].Pos = roundcylinder.Vertices[i].Position;
+        vertices[k].Color = XMFLOAT4(DirectX::Colors::BlanchedAlmond);
+    }
 
 	std::vector<std::uint16_t> indices;
 	indices.insert(indices.end(), std::begin(box.GetIndices16()), std::end(box.GetIndices16()));
@@ -808,7 +822,7 @@ void ShapesApp::BuildShapeGeometry()
     indices.insert(indices.end(), std::begin(grayBox.GetIndices16()), std::end(grayBox.GetIndices16()));
     indices.insert(indices.end(), std::begin(brownBox.GetIndices16()), std::end(brownBox.GetIndices16()));
     indices.insert(indices.end(), std::begin(blackCylinder.GetIndices16()), std::end(blackCylinder.GetIndices16()));
-
+    indices.insert(indices.end(), std::begin(roundcylinder.GetIndices16()), std::end(roundcylinder.GetIndices16()));
 
     const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
     const UINT ibByteSize = (UINT)indices.size()  * sizeof(std::uint16_t);
@@ -846,6 +860,7 @@ void ShapesApp::BuildShapeGeometry()
     geo->DrawArgs["grayBox"] = grayBoxSubmesh;
     geo->DrawArgs["brownBox"] = brownBoxSubmesh;
     geo->DrawArgs["blackCylinder"] = blackCylinderSubmesh;
+    geo->DrawArgs["roundcylinder"] = roundCylinderSubmesh;
 
 	mGeometries[geo->Name] = std::move(geo);
 }
@@ -960,123 +975,8 @@ void ShapesApp::BuildRenderItems()
 
     createCastlePerimeter(objCBIndex);
 
+    createMainCastle(objCBIndex);
 
-
-    /*
-    auto coneRitem = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&coneRitem->World, XMMatrixTranslation(-8.0f, 1.5f, 12.0f));
-    coneRitem->ObjCBIndex = objCBIndex++;
-    coneRitem->Geo = mGeometries["shapeGeo"].get();
-    coneRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    coneRitem->IndexCount = coneRitem->Geo->DrawArgs["cone"].IndexCount;
-    coneRitem->StartIndexLocation = coneRitem->Geo->DrawArgs["cone"].StartIndexLocation;
-    coneRitem->BaseVertexLocation = coneRitem->Geo->DrawArgs["cone"].BaseVertexLocation;
-    mAllRitems.push_back(std::move(coneRitem));
-
-    auto pyramidRitem = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&pyramidRitem->World,XMMatrixRotationY(40.0f) * XMMatrixTranslation(-4.0f, 1.5f, 12.0f));
-    pyramidRitem->ObjCBIndex = objCBIndex++;
-    pyramidRitem->Geo = mGeometries["shapeGeo"].get();
-    pyramidRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    pyramidRitem->IndexCount = pyramidRitem->Geo->DrawArgs["pyramid"].IndexCount;
-    pyramidRitem->StartIndexLocation = pyramidRitem->Geo->DrawArgs["pyramid"].StartIndexLocation;
-    pyramidRitem->BaseVertexLocation = pyramidRitem->Geo->DrawArgs["pyramid"].BaseVertexLocation;
-    mAllRitems.push_back(std::move(pyramidRitem));
-
-    auto triprismRitem = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&triprismRitem->World, XMMatrixRotationY(0.0f) * XMMatrixTranslation(0.0f, 1.5f, 12.0f));
-    triprismRitem->ObjCBIndex = objCBIndex++;
-    triprismRitem->Geo = mGeometries["shapeGeo"].get();
-    triprismRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    triprismRitem->IndexCount = triprismRitem->Geo->DrawArgs["triprism"].IndexCount;
-    triprismRitem->StartIndexLocation = triprismRitem->Geo->DrawArgs["triprism"].StartIndexLocation;
-    triprismRitem->BaseVertexLocation = triprismRitem->Geo->DrawArgs["triprism"].BaseVertexLocation;
-    mAllRitems.push_back(std::move(triprismRitem));
-
-    auto diamond = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&diamond->World, XMMatrixTranslation(5.0f, 1.5f, 12.0f));
-    diamond->ObjCBIndex = objCBIndex++;
-    diamond->Geo = mGeometries["shapeGeo"].get();
-    diamond->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    diamond->IndexCount = diamond->Geo->DrawArgs["diamond"].IndexCount;
-    diamond->StartIndexLocation = diamond->Geo->DrawArgs["diamond"].StartIndexLocation;
-    diamond->BaseVertexLocation = diamond->Geo->DrawArgs["diamond"].BaseVertexLocation;
-    mAllRitems.push_back(std::move(diamond));
-
-    auto wedge = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&wedge->World, XMMatrixTranslation(8.0f, 1.0f, 12.0f));
-    wedge->ObjCBIndex = objCBIndex++;
-    wedge->Geo = mGeometries["shapeGeo"].get();
-    wedge->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    wedge->IndexCount = wedge->Geo->DrawArgs["wedge"].IndexCount;
-    wedge->StartIndexLocation = wedge->Geo->DrawArgs["wedge"].StartIndexLocation;
-    wedge->BaseVertexLocation = wedge->Geo->DrawArgs["wedge"].BaseVertexLocation;
-    mAllRitems.push_back(std::move(wedge));
-
-    auto torus = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&torus->World, XMMatrixTranslation(0.0f, 4.0f, 0.0f));
-    torus->ObjCBIndex = objCBIndex++;
-    torus->Geo = mGeometries["shapeGeo"].get();
-    torus->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    torus->IndexCount = torus->Geo->DrawArgs["torus"].IndexCount;
-    torus->StartIndexLocation = torus->Geo->DrawArgs["torus"].StartIndexLocation;
-    torus->BaseVertexLocation = torus->Geo->DrawArgs["torus"].BaseVertexLocation;
-    mAllRitems.push_back(std::move(torus));*/
-
-    //New function that can create any shape
-    //First XMFloat3 is scale, second is translation
-    //createShapeInWorld(objCBIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 4.0f, 4.0f),90.0f, "torus");
-    //createShapeInWorld(objCBIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 4.0f, -4.0f),0.0f, "wedge");
-	/*for(int i = 0; i < 5; ++i)
-	{
-		auto leftCylRitem = std::make_unique<RenderItem>();
-		auto rightCylRitem = std::make_unique<RenderItem>();
-		auto leftSphereRitem = std::make_unique<RenderItem>();
-		auto rightSphereRitem = std::make_unique<RenderItem>();
-
-		XMMATRIX leftCylWorld = XMMatrixTranslation(-5.0f, 1.5f, -10.0f + i*5.0f);
-		XMMATRIX rightCylWorld = XMMatrixTranslation(+5.0f, 1.5f, -10.0f + i*5.0f);
-
-		XMMATRIX leftSphereWorld = XMMatrixTranslation(-5.0f, 3.5f, -10.0f + i*5.0f);
-		XMMATRIX rightSphereWorld = XMMatrixTranslation(+5.0f, 3.5f, -10.0f + i*5.0f);
-
-		XMStoreFloat4x4(&leftCylRitem->World, rightCylWorld);
-		leftCylRitem->ObjCBIndex = objCBIndex++;
-		leftCylRitem->Geo = mGeometries["shapeGeo"].get();
-		leftCylRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		leftCylRitem->IndexCount = leftCylRitem->Geo->DrawArgs["cylinder"].IndexCount;
-		leftCylRitem->StartIndexLocation = leftCylRitem->Geo->DrawArgs["cylinder"].StartIndexLocation;
-		leftCylRitem->BaseVertexLocation = leftCylRitem->Geo->DrawArgs["cylinder"].BaseVertexLocation;
-
-		XMStoreFloat4x4(&rightCylRitem->World, leftCylWorld);
-		rightCylRitem->ObjCBIndex = objCBIndex++;
-		rightCylRitem->Geo = mGeometries["shapeGeo"].get();
-		rightCylRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		rightCylRitem->IndexCount = rightCylRitem->Geo->DrawArgs["cylinder"].IndexCount;
-		rightCylRitem->StartIndexLocation = rightCylRitem->Geo->DrawArgs["cylinder"].StartIndexLocation;
-		rightCylRitem->BaseVertexLocation = rightCylRitem->Geo->DrawArgs["cylinder"].BaseVertexLocation;
-
-		XMStoreFloat4x4(&leftSphereRitem->World, leftSphereWorld);
-		leftSphereRitem->ObjCBIndex = objCBIndex++;
-		leftSphereRitem->Geo = mGeometries["shapeGeo"].get();
-		leftSphereRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		leftSphereRitem->IndexCount = leftSphereRitem->Geo->DrawArgs["sphere"].IndexCount;
-		leftSphereRitem->StartIndexLocation = leftSphereRitem->Geo->DrawArgs["sphere"].StartIndexLocation;
-		leftSphereRitem->BaseVertexLocation = leftSphereRitem->Geo->DrawArgs["sphere"].BaseVertexLocation;
-
-		XMStoreFloat4x4(&rightSphereRitem->World, rightSphereWorld);
-		rightSphereRitem->ObjCBIndex = objCBIndex++;
-		rightSphereRitem->Geo = mGeometries["shapeGeo"].get();
-		rightSphereRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		rightSphereRitem->IndexCount = rightSphereRitem->Geo->DrawArgs["sphere"].IndexCount;
-		rightSphereRitem->StartIndexLocation = rightSphereRitem->Geo->DrawArgs["sphere"].StartIndexLocation;
-		rightSphereRitem->BaseVertexLocation = rightSphereRitem->Geo->DrawArgs["sphere"].BaseVertexLocation;
-
-		mAllRitems.push_back(std::move(leftCylRitem));
-		mAllRitems.push_back(std::move(rightCylRitem));
-		mAllRitems.push_back(std::move(leftSphereRitem));
-		mAllRitems.push_back(std::move(rightSphereRitem));
-	}*/
  
 
 	// All the render items are opaque.
@@ -1299,6 +1199,13 @@ void ShapesApp::createTowerDoors(UINT& objIndex)
     createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(8.75f, 5.0f, 10.0f), 90.0f, "torus");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(9.0f, 5.0f, 10.0f), 270.0f, "wedge");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(8.65f, 5.2f, 9.9f), 0.0f, "sphere");
+
+    // Castle Door
+    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 2.0f, 0.2f), XMFLOAT3(0.0f, -1.0f, -5.1f), 0.0f, "torus");
+    createShapeInWorld(objIndex, XMFLOAT3(2.5f, 1.5f, 0.5f), XMFLOAT3(0.0f, 0.0f, -4.8f), 180.0f, "wedge");
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.5f, 0.2f, -5.1f), 0.0f, "sphere");
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-0.5f, 0.2f, -5.1f), 0.0f, "sphere");
+    createShapeInWorld(objIndex, XMFLOAT3(0.05f, 1.5f, 0.05f), XMFLOAT3(0.0f, 0.0f, -5.1f), 0.0f, "blackCylinder");
 }
 
 void ShapesApp::createCastlePerimeter(UINT& objIndex)
@@ -1324,5 +1231,109 @@ void ShapesApp::createCastlePerimeter(UINT& objIndex)
 
     //Creates doorframes/doors/doorknobs
     createTowerDoors(objIndex);
+}
+void ShapesApp::createCastleTowers(UINT& objIndex)
+{
+    // Lower main cylinders
+    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 10.0f, 1.5f), XMFLOAT3(5.0, 0.0, 5.0), 0.0f, "roundcylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 10.0f, 1.5f), XMFLOAT3(-5.0, 0.0, 5.0), 0.0f, "roundcylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 10.0f, 1.5f), XMFLOAT3(5.0, 0.0, -5.0), 0.0f, "roundcylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 10.0f, 1.5f), XMFLOAT3(-5.0, 0.0, -5.0), 0.0f, "roundcylinder");
+
+    // Uppers main cylinders
+    createShapeInWorld(objIndex, XMFLOAT3(1.75f, 5.0f, 1.75f), XMFLOAT3(5.0, 8.0, 5.0), 0.0f, "roundcylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(1.75f, 5.0f, 1.75f), XMFLOAT3(-5.0, 8.0, 5.0), 0.0f, "roundcylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(1.75f, 5.0f, 1.75f), XMFLOAT3(5.0, 8.0, -5.0), 0.0f, "roundcylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(1.75f, 5.0f, 1.75f), XMFLOAT3(-5.0, 8.0, -5.0), 0.0f, "roundcylinder");
+
+    // Cylinder breaks
+    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 0.5f, 2.0f), XMFLOAT3(5.0, 7.5, 5.0), 0.0f, "blackCylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 0.5f, 2.0f), XMFLOAT3(-5.0, 7.5, 5.0), 0.0f, "blackCylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 0.5f, 2.0f), XMFLOAT3(5.0, 7.5, -5.0), 0.0f, "blackCylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 0.5f, 2.0f), XMFLOAT3(-5.0, 7.5, -5.0), 0.0f, "blackCylinder");
+      
+    // Under cone breaks
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 0.2f, 2.1f), XMFLOAT3(5.0, 12.8, 5.0), 0.0f, "blackCylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 0.2f, 2.1f), XMFLOAT3(-5.0, 12.8, 5.0), 0.0f, "blackCylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 0.2f, 2.1f), XMFLOAT3(5.0, 12.8, -5.0), 0.0f, "blackCylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 0.2f, 2.1f), XMFLOAT3(-5.0, 12.8, -5.0), 0.0f, "blackCylinder");
+
+    // Tower Base
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 1.0f, 2.1f), XMFLOAT3(5.0, 0.0, 5.0), 0.0f, "blackCylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 1.0f, 2.1f), XMFLOAT3(-5.0, 0.0, 5.0), 0.0f, "blackCylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 1.0f, 2.1f), XMFLOAT3(5.0, 0.0, -5.0), 0.0f, "blackCylinder");
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 1.0f, 2.1f), XMFLOAT3(-5.0, 0.0, -5.0), 0.0f, "blackCylinder");
+
+    // Top of tower cones
+    createShapeInWorld(objIndex, XMFLOAT3(2.5f, 5.0f, 2.5f), XMFLOAT3(5.0, 13.0, 5.0), 0.0f, "cone");
+    createShapeInWorld(objIndex, XMFLOAT3(2.5f, 5.0f, 2.5f), XMFLOAT3(-5.0, 13.0, 5.0), 0.0f, "cone");
+    createShapeInWorld(objIndex, XMFLOAT3(2.5f, 5.0f, 2.5f), XMFLOAT3(5.0, 13.0, -5.0), 0.0f, "cone");
+    createShapeInWorld(objIndex, XMFLOAT3(2.5f, 5.0f, 2.5f), XMFLOAT3(-5.0, 13.0, -5.0), 0.0f, "cone");
+
+}
+
+void ShapesApp::createMainCastle(UINT& objIndex)
+{
+    createCastleTowers(objIndex);
+
+    // Main Cube
+    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 10.0f, 10.0f), XMFLOAT3(0.0, 0.0, 0.0), 0.0f, "box");
+
+    // Raised platforms
+    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 1.0f, 10.0f), XMFLOAT3(5.0, 10.0, 0.0), 0.0f, "brownBox");
+    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 1.0f, 10.0f), XMFLOAT3(-5.0, 10.0, 0.0), 0.0f, "brownBox");
+    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.0f, 2.0f), XMFLOAT3(0.0, 10.0, 5.0), 0.0f, "brownBox");
+    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.0f, 2.0f), XMFLOAT3(0.0, 10.0, -5.0), 0.0f, "brownBox");
+
+    // Platform Walls
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.5f, 10.0f), XMFLOAT3(6.0, 10.0, 0.0), 0.0f, "box");
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.5f, 10.0f), XMFLOAT3(-6.0, 10.0, 0.0), 0.0f, "box");
+    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.5f, 0.5f), XMFLOAT3(0.0, 10.0, 6.0), 0.0f, "box");
+    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.5f, 0.5f), XMFLOAT3(0.0, 10.0, -6.0), 0.0f, "box");
+
+    // Castle Studs
+    for (int i = 0; i < 3; i++)
+    {
+        // Front Studs
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-2.0 + (i * 2), 7.5, -5.5), XMFLOAT3(-90.0f, 0.0f, 0.0f), "pyramid");
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-2.0 + (i * 2), 4.0, -5.5), XMFLOAT3(-90.0f, 0.0f, 0.0f), "pyramid");
+       // Back Studs
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-2.0 + (i * 2), 7.5, 5.5), XMFLOAT3(90.0f, 0.0f, 0.0f), "pyramid");
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-2.0 + (i * 2), 4.0, 5.5), XMFLOAT3(90.0f, 0.0f, 0.0f), "pyramid");
+       // Right Studs
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(5.5, 7.5, -2.0 + (i * 2)), XMFLOAT3(90.0f, 90.0f, 0.0f), "pyramid");
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(5.5, 4.0, -2.0 + (i * 2)), XMFLOAT3(90.0f, 90.0f, 0.0f), "pyramid");
+      // Left Studs
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-5.5, 7.5, -2.0 + (i * 2)), XMFLOAT3(90.0f, -90.0f, 0.0f), "pyramid");
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-5.5, 4.0, -2.0 + (i * 2)), XMFLOAT3(90.0f, -90.0f, 0.0f), "pyramid");
+    }
+
+    // Upper platform support wedges
+    for (int i = 0; i < 7; i++)
+    {
+         createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-3.0 + i, 9.5, -5.5), XMFLOAT3(0.0f, 0.0f, 180.0f), "wedge");
+         createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-3.0 + i, 9.5, 5.5), XMFLOAT3(0.0f, 180.0f, 180.0f), "wedge");
+         createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(5.5, 9.5, -3.0 + i), XMFLOAT3(0.0f, -90.0f, 180.0f), "wedge");
+         createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-5.5, 9.5, -3.0 + i), XMFLOAT3(0.0f, 90.0f, 180.0f), "wedge");
+    }
+
+    // Upper platform top wedges
+    for (int i = 0; i < 5; i++)
+    {
+        createShapeInWorld(objIndex, XMFLOAT3(1.0f, 0.5f, 0.5f), XMFLOAT3(-3.0 + (i * 2), 11.5, -6.0), XMFLOAT3(0.0f, 0.0f, 0.0f), "wedge");
+        createShapeInWorld(objIndex, XMFLOAT3(1.0f, 0.5f, 0.5f), XMFLOAT3(-3.0 + (i * 2), 11.5, 6.0), XMFLOAT3(0.0f, 180.0f, 0.0f), "wedge");
+        createShapeInWorld(objIndex, XMFLOAT3(1.0f, 0.5f, 0.5f), XMFLOAT3(-6.0, 11.5, -3.0 + (i *2)), XMFLOAT3(0.0f, 90.0f, 0.0f), "wedge");
+        createShapeInWorld(objIndex, XMFLOAT3(1.0f, 0.5f, 0.5f), XMFLOAT3(6.0, 11.5, -3.0 + (i * 2)), XMFLOAT3(0.0f, -90.0f, 0.0f), "wedge");
+    }
+    // Top of castle ground
+    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 0.1f, 10.0f), XMFLOAT3(0.0, 10.1, 0.0), 0.0f, "grayBox");
+
+    // Diamond Holders
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(1.0, 10.0, 1.0), 75.0f, "triprism");
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(-1.0, 10.0, 1.0),-15.0f, "triprism");
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(1.0, 10.0, -1.0), 45.0f, "triprism");
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(-1.0, 10.0, -1.0), 15.0f, "triprism");
+
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.5f, 1.0f), XMFLOAT3(0.0, 12.5, 0.0), 0.0f, "diamond");
 }
 
