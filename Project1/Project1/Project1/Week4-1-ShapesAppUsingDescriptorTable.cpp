@@ -530,7 +530,7 @@ void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
 	mMainPassCB.TotalTime = gt.TotalTime();
 	mMainPassCB.DeltaTime = gt.DeltaTime();
 
-    mMainPassCB.AmbientLight = { 1.0f, 1.0f, 1.0f, 1.0f };
+    mMainPassCB.AmbientLight = { 0.65f, 0.6f, 0.85f, 1.0f };
     mMainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
     mMainPassCB.Lights[0].Strength = { 0.9f, 0.9f, 0.9f };
     mMainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
@@ -1187,106 +1187,106 @@ void ShapesApp::BuildShapeGeometry()
 	{
 		vertices[k].Pos = box.Vertices[i].Position;
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::Wheat);
-        vertices[i].Normal = box.Vertices[i].Normal;
-        vertices[i].TexC = box.Vertices[i].TexC;
+        vertices[k].Normal = box.Vertices[i].Normal;
+        vertices[k].TexC = box.Vertices[i].TexC;
 	}
 
 	for(size_t i = 0; i < grid.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = grid.Vertices[i].Position;
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::ForestGreen);
-        vertices[i].Normal = grid.Vertices[i].Normal;
-        vertices[i].TexC = grid.Vertices[i].TexC;
+        vertices[k].Normal = grid.Vertices[i].Normal;
+        vertices[k].TexC = grid.Vertices[i].TexC;
 	}
 
 	for(size_t i = 0; i < sphere.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = sphere.Vertices[i].Position;
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::Black);
-        vertices[i].Normal = sphere.Vertices[i].Normal;
-        vertices[i].TexC = sphere.Vertices[i].TexC;
+        vertices[k].Normal = sphere.Vertices[i].Normal;
+        vertices[k].TexC = sphere.Vertices[i].TexC;
 	}
 
 	for(size_t i = 0; i < cylinder.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = cylinder.Vertices[i].Position;
 		//vertices[k].Color = XMFLOAT4(DirectX::Colors::Wheat);
-        vertices[i].Normal = cylinder.Vertices[i].Normal;
-        vertices[i].TexC = cylinder.Vertices[i].TexC;
+        vertices[k].Normal = cylinder.Vertices[i].Normal;
+        vertices[k].TexC = cylinder.Vertices[i].TexC;
 	}
 
     for (size_t i = 0; i < cone.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = cone.Vertices[i].Position;
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::MidnightBlue);
-        vertices[i].Normal = cone.Vertices[i].Normal;
-        vertices[i].TexC = cone.Vertices[i].TexC;
+        vertices[k].Normal = cone.Vertices[i].Normal;
+        vertices[k].TexC = cone.Vertices[i].TexC;
     }
 
     for (size_t i = 0; i < pyramid.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = pyramid.Vertices[i].Position;
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::DarkGray);
-        vertices[i].Normal = pyramid.Vertices[i].Normal;
-        vertices[i].TexC = pyramid.Vertices[i].TexC;
+        vertices[k].Normal = pyramid.Vertices[i].Normal;
+        vertices[k].TexC = pyramid.Vertices[i].TexC;
     }
 
     for (size_t i = 0; i < triprism.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = triprism.Vertices[i].Position;
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::Indigo);
-        vertices[i].Normal = triprism.Vertices[i].Normal;
-        vertices[i].TexC = triprism.Vertices[i].TexC;
+        vertices[k].Normal = triprism.Vertices[i].Normal;
+        vertices[k].TexC = triprism.Vertices[i].TexC;
     }
 
     for (size_t i = 0; i < diamond.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = diamond.Vertices[i].Position;
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::SpringGreen);
-        vertices[i].Normal = diamond.Vertices[i].Normal;
-        vertices[i].TexC = diamond.Vertices[i].TexC;
+        vertices[k].Normal = diamond.Vertices[i].Normal;
+        vertices[k].TexC = diamond.Vertices[i].TexC;
     }
     for (size_t i = 0; i < wedge.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = wedge.Vertices[i].Position;
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::SaddleBrown);
-        vertices[i].Normal = wedge.Vertices[i].Normal;
-        vertices[i].TexC = wedge.Vertices[i].TexC;
+        vertices[k].Normal = wedge.Vertices[i].Normal;
+        vertices[k].TexC = wedge.Vertices[i].TexC;
     }
     for (size_t i = 0; i < torus.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = torus.Vertices[i].Position;
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::Black);
-        vertices[i].Normal = torus.Vertices[i].Normal;
-        vertices[i].TexC = torus.Vertices[i].TexC;
+        vertices[k].Normal = torus.Vertices[i].Normal;
+        vertices[k].TexC = torus.Vertices[i].TexC;
     }
     for (size_t i = 0; i < grayBox.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = grayBox.Vertices[i].Position;
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::DarkGray);
-        vertices[i].Normal = grayBox.Vertices[i].Normal;
-        vertices[i].TexC = grayBox.Vertices[i].TexC;
+        vertices[k].Normal = grayBox.Vertices[i].Normal;
+        vertices[k].TexC = grayBox.Vertices[i].TexC;
     }
     for (size_t i = 0; i < brownBox.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = brownBox.Vertices[i].Position;
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::BurlyWood);
-        vertices[i].Normal = brownBox.Vertices[i].Normal;
-        vertices[i].TexC = brownBox.Vertices[i].TexC;
+        vertices[k].Normal = brownBox.Vertices[i].Normal;
+        vertices[k].TexC = brownBox.Vertices[i].TexC;
     }
     for (size_t i = 0; i < blackCylinder.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = blackCylinder.Vertices[i].Position;
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::Black);
-        vertices[i].Normal = blackCylinder.Vertices[i].Normal;
-        vertices[i].TexC = blackCylinder.Vertices[i].TexC;
+        vertices[k].Normal = blackCylinder.Vertices[i].Normal;
+        vertices[k].TexC = blackCylinder.Vertices[i].TexC;
     }
     for (size_t i = 0; i < roundcylinder.Vertices.size(); ++i, ++k)
     {
         vertices[k].Pos = roundcylinder.Vertices[i].Position;
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::BlanchedAlmond);
-        vertices[i].Normal = roundcylinder.Vertices[i].Normal;
-        vertices[i].TexC = roundcylinder.Vertices[i].TexC;
+        vertices[k].Normal = roundcylinder.Vertices[i].Normal;
+        vertices[k].TexC = roundcylinder.Vertices[i].TexC;
     }
 
 	std::vector<std::uint16_t> indices;
@@ -1536,7 +1536,7 @@ void ShapesApp::BuildRenderItems()
 	//mAllRitems.push_back(std::move(boxRitem));
 
     auto wavesRitem = std::make_unique<RenderItem>();
-    wavesRitem->World = MathHelper::Identity4x4();
+    XMStoreFloat4x4(&wavesRitem->World, XMMatrixTranslation(-10.0f, -1.5f, 0.0f));
     XMStoreFloat4x4(&wavesRitem->TexTransform, XMMatrixScaling(5.0f, 5.0f, 1.0f));
     wavesRitem->ObjCBIndex = objCBIndex++;
     wavesRitem->Mat = mMaterials["water"].get();
@@ -1553,7 +1553,7 @@ void ShapesApp::BuildRenderItems()
     mAllRitems.push_back(std::move(wavesRitem));
 
     auto gridRitem = std::make_unique<RenderItem>();
-    gridRitem->World = MathHelper::Identity4x4();
+    XMStoreFloat4x4(&gridRitem->World, XMMatrixTranslation(-10.0f, -1.5f, 0.0f));
     XMStoreFloat4x4(&gridRitem->TexTransform, XMMatrixScaling(5.0f, 5.0f, 1.0f));
     gridRitem->ObjCBIndex = objCBIndex++;
     gridRitem->Mat = mMaterials["grass"].get();
@@ -1622,11 +1622,11 @@ void ShapesApp::createTower(UINT& objIndex, XMFLOAT3 location)
     //Creates main tower structure
     createShapeInWorld(objIndex, XMFLOAT3(2.0f, 7.0f, 2.0f), XMFLOAT3(location.x, location.y + 1.0f, location.z), 45.0f, "cylinder", "sandbrick");
     //Creates gray stone foundation 
-    createShapeInWorld(objIndex, XMFLOAT3(3.0f, 1.0f, 3.0f), XMFLOAT3(location.x, location.y, location.z), 0.0f, "grayBox", "stonebrick");
+    createShapeInWorld(objIndex, XMFLOAT3(3.0f, 1.0f, 3.0f), XMFLOAT3(location.x, location.y, location.z), 0.0f, "box", "stonebrick");
     //Creates platoform at top of towers 
     createShapeInWorld(objIndex, XMFLOAT3(3.0f, 0.5f, 3.0f), XMFLOAT3(location.x, location.y + 8.0f, location.z), 0.0f, "box", "sandbrick");
     //Creates thin platform "walkway" for better color variety
-   createShapeInWorld(objIndex, XMFLOAT3(2.5f, 0.5f, 2.5f), XMFLOAT3(location.x, location.y + 8.1f, location.z), 0.0f, "brownBox", "woodV");
+   createShapeInWorld(objIndex, XMFLOAT3(2.5f, 0.5f, 2.5f), XMFLOAT3(location.x, location.y + 8.1f, location.z), 0.0f, "box", "woodV");
 
     //Creates pirapits for tops of towers
     for (int i = 0; i < 7; i++)
@@ -1687,11 +1687,11 @@ void ShapesApp::createWall(UINT& objIndex, XMFLOAT3 location, float rotation, in
     //Signs moves the piratits to correct location on wall depending on walls rotations
 
     //Creates gray stone foundation 
-    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), rotation, "grayBox", "stonebrick");
+    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), rotation, "box", "stonebrick");
     //Creates main wall structure
     createShapeInWorld(objIndex, XMFLOAT3(18.0f, 4.0f, 2.0f), XMFLOAT3(location.x, location.y +1.0f, location.z), rotation, "box", "sandbrick");
     //Creates thin platform "walkway" for better color variety
-    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 0.1f, 2.0f), XMFLOAT3(location.x, location.y + 5.0f, location.z), rotation, "brownBox", "woodV");
+    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 0.1f, 2.0f), XMFLOAT3(location.x, location.y + 5.0f, location.z), rotation, "box", "woodV");
  
     //Creates pirapits for tops of walls
     if (rotation == 0.0f)
@@ -1731,7 +1731,7 @@ void ShapesApp::createWall(UINT& objIndex, XMFLOAT3 location, float rotation, in
 void ShapesApp::createMainGate(UINT& objIndex, XMFLOAT3 location)
 {
     //Creates gray stone foundation 
-    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), 0.0f, "grayBox", "stonebrick");
+    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), 0.0f, "box", "stonebrick");
     //Creates left portion of main wall
     createShapeInWorld(objIndex, XMFLOAT3(6.0f, 4.0f, 2.0f), XMFLOAT3(location.x -6.0f, location.y + 1.0f, location.z), 0.0f, "box", "sandbrick");
     //Creates right portion of main wall
@@ -1741,7 +1741,7 @@ void ShapesApp::createMainGate(UINT& objIndex, XMFLOAT3 location)
     //Creats "drawbridge" 
     createShapeInWorld(objIndex, XMFLOAT3(6.0f, 1.0f, 5.0f), XMFLOAT3(location.x, location.y, location.z-3.5f), 0.0f, "wedge", "woodV");
     //Creates thin platform "walkway" for better color variety
-    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 0.1f, 2.0f), XMFLOAT3(location.x, location.y + 5.0f, location.z), 0.0f, "brownBox", "woodV");
+    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 0.1f, 2.0f), XMFLOAT3(location.x, location.y + 5.0f, location.z), 0.0f, "box", "woodV");
     //Creates left drawbridge rope
     createShapeInWorld(objIndex, XMFLOAT3(0.05f, 0.05f, 2.75f), XMFLOAT3(location.x - 3.0f, location.y + 2.0f, location.z - 2.75f), XMFLOAT3(-45.0f,0.0f,60.0f), "blackCylinder", "iron");
     //Creates right drawbridge rope
@@ -1766,7 +1766,7 @@ void ShapesApp::createTowerDoors(UINT& objIndex)
 {
     //Doorframes & Doors for front left tower
     createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(-10.0f, 5.0f, -8.75f), 0.0f, "torus", "stone");
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(-10.0f, 5.0f, -9.0f), 0.0f, "wedge", "woodV");
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(-10.0f, 5.0f, -9.0f), 0.0f, "box", "woodV");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-10.1f, 5.2f, -8.7f), 0.0f, "sphere", "iron" );
 
 
@@ -1885,10 +1885,10 @@ void ShapesApp::createMainCastle(UINT& objIndex)
     createShapeInWorld(objIndex, XMFLOAT3(10.0f, 10.0f, 10.0f), XMFLOAT3(0.0, 0.0, 0.0), 0.0f, "box", "sandbrick");
 
     // Raised platforms
-    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 1.0f, 10.0f), XMFLOAT3(5.0, 10.0, 0.0), 0.0f, "brownBox",  "woodV");
-    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 1.0f, 10.0f), XMFLOAT3(-5.0, 10.0, 0.0), 0.0f, "brownBox", "woodV");
-    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.0f, 2.0f), XMFLOAT3(0.0, 10.0, 5.0), 0.0f, "brownBox",  "woodV");
-    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.0f, 2.0f), XMFLOAT3(0.0, 10.0, -5.0), 0.0f, "brownBox", "woodV");
+    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 1.0f, 10.0f), XMFLOAT3(5.0, 10.0, 0.0), 0.0f, "box",  "woodV");
+    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 1.0f, 10.0f), XMFLOAT3(-5.0, 10.0, 0.0), 0.0f, "box", "woodV");
+    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.0f, 2.0f), XMFLOAT3(0.0, 10.0, 5.0), 0.0f, "box",  "woodV");
+    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.0f, 2.0f), XMFLOAT3(0.0, 10.0, -5.0), 0.0f, "box", "woodV");
 
     // Platform Walls
     createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.5f, 10.0f), XMFLOAT3(6.0, 10.0, 0.0), 0.0f, "box", "sandbrick");
@@ -1931,7 +1931,7 @@ void ShapesApp::createMainCastle(UINT& objIndex)
         createShapeInWorld(objIndex, XMFLOAT3(1.0f, 0.5f, 0.5f), XMFLOAT3(6.0, 11.5, -3.0 + (i * 2)), XMFLOAT3(0.0f, -90.0f, 0.0f), "wedge", "stone");
     }
     // Top of castle ground
-    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 0.1f, 10.0f), XMFLOAT3(0.0, 10.1, 0.0), 0.0f, "grayBox", "stonebrick");
+    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 0.1f, 10.0f), XMFLOAT3(0.0, 10.1, 0.0), 0.0f, "box", "stonebrick");
 
     // Diamond Holders
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(1.0, 10.0, 1.0), 75.0f, "triprism",   "iron");
@@ -2001,7 +2001,7 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> ShapesApp::GetStaticSamplers()
 
 float ShapesApp::GetHillsHeight(float x, float z) const
 {
-    return 0.3f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
+    return 0.3f * (z * sinf(0.1f * x) + x * cosf(0.1f * z)) + 0.1f;
 }
 
 XMFLOAT3 ShapesApp::GetHillsNormal(float x, float z) const
