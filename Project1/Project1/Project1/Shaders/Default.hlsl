@@ -6,11 +6,11 @@
 
 // Defaults for number of lights.
 #ifndef NUM_DIR_LIGHTS
-    #define NUM_DIR_LIGHTS 3
+    #define NUM_DIR_LIGHTS 1
 #endif
 
 #ifndef NUM_POINT_LIGHTS
-    #define NUM_POINT_LIGHTS 0
+    #define NUM_POINT_LIGHTS 2
 #endif
 
 #ifndef NUM_SPOT_LIGHTS
@@ -55,6 +55,9 @@ cbuffer cbPass : register(b1)
     float gTotalTime;
     float gDeltaTime;
     float4 gAmbientLight;
+   
+    //Light needs to be kept before fog variables
+    Light gLights[MaxLights];
 
 	// Allow application to change fog parameters once per frame.
 	// For example, we may only use fog for certain times of day.
@@ -67,7 +70,7 @@ cbuffer cbPass : register(b1)
     // indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHTS) are point lights;
     // indices [NUM_DIR_LIGHTS+NUM_POINT_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHT+NUM_SPOT_LIGHTS)
     // are spot lights for a maximum of MaxLights per object.
-    Light gLights[MaxLights];
+    
 };
 
 cbuffer cbMaterial : register(b2)

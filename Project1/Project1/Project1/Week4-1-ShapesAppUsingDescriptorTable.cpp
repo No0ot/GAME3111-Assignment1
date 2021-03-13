@@ -110,6 +110,10 @@ private:
     void createCastleTowers(UINT& objIndex);
     void createMainCastle(UINT& objIndex);
 
+    void createTorch(UINT& objIndex);
+
+    
+
     std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
 
     float GetHillsHeight(float x, float z)const;
@@ -402,25 +406,6 @@ void ShapesApp::UpdateCamera(const GameTimer& gt)
 	mEyePos.z = mRadius*sinf(mPhi)*sinf(mTheta);
 	mEyePos.y = mRadius*cosf(mPhi);
 
-    //These move the angle the camera is looking at
-    //Left
-    if (GetAsyncKeyState('A')) {
-        target += (-right);
-    }
-    //Right
-    else if (GetAsyncKeyState('D')) {
-        target += right;
-    }
-    //Down
-    if (GetAsyncKeyState('S')) {
-        target += (-upward);
-    }
-    //Up
-    else if (GetAsyncKeyState('W')) {
-        target += upward;
-    }
-
-
 	// Build the view matrix.
 	XMVECTOR pos = XMVectorSet(mEyePos.x, mEyePos.y, mEyePos.z, 1.0f);
 	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
@@ -530,13 +515,9 @@ void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
 	mMainPassCB.TotalTime = gt.TotalTime();
 	mMainPassCB.DeltaTime = gt.DeltaTime();
 
-    mMainPassCB.AmbientLight = { 0.65f, 0.6f, 0.85f, 1.0f };
-    mMainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-    mMainPassCB.Lights[0].Strength = { 0.9f, 0.9f, 0.9f };
-    mMainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-    mMainPassCB.Lights[1].Strength = { 0.5f, 0.5f, 0.5f };
-    mMainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-    mMainPassCB.Lights[2].Strength = { 0.2f, 0.2f, 0.2f };
+    mMainPassCB.AmbientLight = { 0.15f, 0.15f, 0.15f, 1.0f };
+    mMainPassCB.Lights[0].Direction = { -0.5, -0.5, 3.0 };
+    mMainPassCB.Lights[0].Strength = { 0.1,0.1,0.1};
 
 	auto currPassCB = mCurrFrameResource->PassCB.get();
 	currPassCB->CopyData(0, mMainPassCB);
@@ -640,6 +621,20 @@ void ShapesApp::LoadTextures()
         mCommandList.Get(), waterTex->Filename.c_str(),
         waterTex->Resource, waterTex->UploadHeap));
 
+    auto wroughtIronTex = std::make_unique<Texture>();
+    wroughtIronTex->Name = "wroughtIronTex";
+    wroughtIronTex->Filename = L"../../Textures/wroughtIronTexture.dds";
+    ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+        mCommandList.Get(), wroughtIronTex->Filename.c_str(),
+        wroughtIronTex->Resource, wroughtIronTex->UploadHeap));
+
+    auto flameTex = std::make_unique<Texture>();
+    flameTex->Name = "flameTex";
+    flameTex->Filename = L"../../Textures/FlameTexture.dds";
+    ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+        mCommandList.Get(), flameTex->Filename.c_str(),
+        flameTex->Resource, flameTex->UploadHeap));
+
     //auto crystalTex = std::make_unique<Texture>();
     //crystalTex->Name = "crystalTex";
     //crystalTex->Filename = L"../../Textures/crystal.dds";
@@ -655,6 +650,8 @@ void ShapesApp::LoadTextures()
     mTextures[stonebrickTex->Name] = std::move(stonebrickTex);
     mTextures[woodVTex->Name] = std::move(woodVTex);
     mTextures[waterTex->Name] = std::move(waterTex);
+    mTextures[wroughtIronTex->Name] = std::move(wroughtIronTex);
+    mTextures[flameTex->Name] = std::move(flameTex);
     //mTextures[crystalTex->Name] = std::move(crystalTex);
 }
 //If we have 3 frame resources and n render items, then we have three 3n object constant
@@ -685,7 +682,7 @@ void ShapesApp::BuildDescriptorHeaps()
     // Create the SRV heap.
     //
     D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-    srvHeapDesc.NumDescriptors = 8;
+    srvHeapDesc.NumDescriptors = 10;
     srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
@@ -703,6 +700,8 @@ void ShapesApp::BuildDescriptorHeaps()
     auto stonebrickTex = mTextures["stonebrickTex"]->Resource;
     auto woodVTex = mTextures["woodVTex"]->Resource;
     auto waterTex = mTextures["waterTex"]->Resource;
+    auto wroughtIronTex = mTextures["wroughtIronTex"]->Resource;
+    auto flameTex = mTextures["flameTex"]->Resource;
     //auto crystalTex = mTextures["crystalTex"]->Resource;
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -761,6 +760,18 @@ void ShapesApp::BuildDescriptorHeaps()
 
     srvDesc.Format = waterTex->GetDesc().Format;
     md3dDevice->CreateShaderResourceView(waterTex.Get(), &srvDesc, hDescriptor);
+
+    // next descriptor
+    hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+
+    srvDesc.Format = wroughtIronTex->GetDesc().Format;
+    md3dDevice->CreateShaderResourceView(wroughtIronTex.Get(), &srvDesc, hDescriptor);
+
+    // next descriptor
+    hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+
+    srvDesc.Format = flameTex->GetDesc().Format;
+    md3dDevice->CreateShaderResourceView(flameTex.Get(), &srvDesc, hDescriptor);
 }
 
 //assuming we have n renter items, we can populate the CBV heap with the following code where descriptors 0 to n-
@@ -1030,7 +1041,7 @@ void ShapesApp::BuildWavesGeometry()
 void ShapesApp::BuildShapeGeometry()
 {
     GeometryGenerator geoGen;
-	GeometryGenerator::MeshData box = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3);
+	GeometryGenerator::MeshData box = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3, 0.5, 0.5);
 	GeometryGenerator::MeshData grid = geoGen.CreateGrid(160.0f, 160.0f, 50, 50);
 	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(0.05f, 20, 20);
 	GeometryGenerator::MeshData cylinder = geoGen.CreateCylinder(1.0f,0.75f,1.0f,4,20);
@@ -1040,10 +1051,11 @@ void ShapesApp::BuildShapeGeometry()
     GeometryGenerator::MeshData diamond = geoGen.CreateDiamond(3.0f, 4.0f, 4, 20);
     GeometryGenerator::MeshData wedge = geoGen.CreateWedge(1.0f, 1.0f, 1.0f, 3);
     GeometryGenerator::MeshData torus = geoGen.CreateTorus(1.0f, 0.25f, 10, 12);
-    GeometryGenerator::MeshData grayBox = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3);
-    GeometryGenerator::MeshData brownBox = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3);
+    GeometryGenerator::MeshData grayBox = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3, 0.25, 1);
+    GeometryGenerator::MeshData fireBox = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3, 1, 1);
     GeometryGenerator::MeshData blackCylinder = geoGen.CreateCylinder(1.0f, 1.0f, 1.0f, 14, 20);
     GeometryGenerator::MeshData roundcylinder = geoGen.CreateCylinder(1.0f, 1.0f, 1.0f, 20, 20);
+    GeometryGenerator::MeshData torchHandle = geoGen.CreateCone(0.25f, 0.75f, 20, 20);
     
     
 
@@ -1066,8 +1078,9 @@ void ShapesApp::BuildShapeGeometry()
     UINT torusVertexOffset = wedgeVertexOffset + (UINT)wedge.Vertices.size();
     UINT grayBoxVertexOffset = torusVertexOffset + (UINT)torus.Vertices.size();
     UINT brownBoxVertexOffset = grayBoxVertexOffset + (UINT)grayBox.Vertices.size();
-    UINT blackCylinderVertexOffset = brownBoxVertexOffset + (UINT)brownBox.Vertices.size();
+    UINT blackCylinderVertexOffset = brownBoxVertexOffset + (UINT)fireBox.Vertices.size();
     UINT roundCylinderVertexOffset = blackCylinderVertexOffset + (UINT)blackCylinder.Vertices.size();
+    UINT torchHandleVertexOffset = roundCylinderVertexOffset + (UINT)roundcylinder.Vertices.size();
 
 	// Cache the starting index for each object in the concatenated index buffer.
 	UINT boxIndexOffset = 0;
@@ -1082,8 +1095,9 @@ void ShapesApp::BuildShapeGeometry()
     UINT torusIndexOffset = wedgeIndexOffset + (UINT)wedge.Indices32.size();
     UINT grayBoxIndexOffset = torusIndexOffset + (UINT)torus.Indices32.size();
     UINT brownBoxIndexOffset = grayBoxIndexOffset + (UINT)grayBox.Indices32.size();
-    UINT blackCylinderIndexOffset = brownBoxIndexOffset + (UINT)brownBox.Indices32.size();
+    UINT blackCylinderIndexOffset = brownBoxIndexOffset + (UINT)fireBox.Indices32.size();
     UINT roundCylinderIndexOffset = blackCylinderIndexOffset + (UINT)blackCylinder.Indices32.size();
+    UINT torchHandleIndexOffset = roundCylinderIndexOffset + (UINT)roundcylinder.Indices32.size();
 
     // Define the SubmeshGeometry that cover different 
     // regions of the vertex/index buffers.
@@ -1144,7 +1158,7 @@ void ShapesApp::BuildShapeGeometry()
     grayBoxSubmesh.BaseVertexLocation = grayBoxVertexOffset;
 
     SubmeshGeometry brownBoxSubmesh;
-    brownBoxSubmesh.IndexCount = (UINT)brownBox.Indices32.size();
+    brownBoxSubmesh.IndexCount = (UINT)fireBox.Indices32.size();
     brownBoxSubmesh.StartIndexLocation = brownBoxIndexOffset;
     brownBoxSubmesh.BaseVertexLocation = brownBoxVertexOffset;
 
@@ -1157,6 +1171,11 @@ void ShapesApp::BuildShapeGeometry()
     roundCylinderSubmesh.IndexCount = (UINT)roundcylinder.Indices32.size();
     roundCylinderSubmesh.StartIndexLocation = roundCylinderIndexOffset;
     roundCylinderSubmesh.BaseVertexLocation = roundCylinderVertexOffset;
+
+    SubmeshGeometry torchHandleSubmesh;
+    torchHandleSubmesh.IndexCount = (UINT)torchHandle.Indices32.size();
+    torchHandleSubmesh.StartIndexLocation = torchHandleIndexOffset;
+    torchHandleSubmesh.BaseVertexLocation = torchHandleVertexOffset;
 
 
 	//
@@ -1176,9 +1195,10 @@ void ShapesApp::BuildShapeGeometry()
         wedge.Vertices.size() +
         torus.Vertices.size() +
         grayBox.Vertices.size() +
-        brownBox.Vertices.size() +
+        fireBox.Vertices.size() +
         blackCylinder.Vertices.size() +
-        roundcylinder.Vertices.size();
+        roundcylinder.Vertices.size() + 
+        torchHandle.Vertices.size();
 
 	std::vector<Vertex> vertices(totalVertexCount);
 
@@ -1267,12 +1287,12 @@ void ShapesApp::BuildShapeGeometry()
         vertices[k].Normal = grayBox.Vertices[i].Normal;
         vertices[k].TexC = grayBox.Vertices[i].TexC;
     }
-    for (size_t i = 0; i < brownBox.Vertices.size(); ++i, ++k)
+    for (size_t i = 0; i < fireBox.Vertices.size(); ++i, ++k)
     {
-        vertices[k].Pos = brownBox.Vertices[i].Position;
+        vertices[k].Pos = fireBox.Vertices[i].Position;
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::BurlyWood);
-        vertices[k].Normal = brownBox.Vertices[i].Normal;
-        vertices[k].TexC = brownBox.Vertices[i].TexC;
+        vertices[k].Normal = fireBox.Vertices[i].Normal;
+        vertices[k].TexC = fireBox.Vertices[i].TexC;
     }
     for (size_t i = 0; i < blackCylinder.Vertices.size(); ++i, ++k)
     {
@@ -1288,6 +1308,13 @@ void ShapesApp::BuildShapeGeometry()
         vertices[k].Normal = roundcylinder.Vertices[i].Normal;
         vertices[k].TexC = roundcylinder.Vertices[i].TexC;
     }
+    for (size_t i = 0; i < torchHandle.Vertices.size(); ++i, ++k)
+    {
+        vertices[k].Pos = torchHandle.Vertices[i].Position;
+        //vertices[k].Color = XMFLOAT4(DirectX::Colors::BlanchedAlmond);
+        vertices[k].Normal = torchHandle.Vertices[i].Normal;
+        vertices[k].TexC = torchHandle.Vertices[i].TexC;
+    }
 
 	std::vector<std::uint16_t> indices;
 	indices.insert(indices.end(), std::begin(box.GetIndices16()), std::end(box.GetIndices16()));
@@ -1301,9 +1328,11 @@ void ShapesApp::BuildShapeGeometry()
     indices.insert(indices.end(), std::begin(wedge.GetIndices16()), std::end(wedge.GetIndices16()));
     indices.insert(indices.end(), std::begin(torus.GetIndices16()), std::end(torus.GetIndices16()));
     indices.insert(indices.end(), std::begin(grayBox.GetIndices16()), std::end(grayBox.GetIndices16()));
-    indices.insert(indices.end(), std::begin(brownBox.GetIndices16()), std::end(brownBox.GetIndices16()));
+    indices.insert(indices.end(), std::begin(fireBox.GetIndices16()), std::end(fireBox.GetIndices16()));
     indices.insert(indices.end(), std::begin(blackCylinder.GetIndices16()), std::end(blackCylinder.GetIndices16()));
     indices.insert(indices.end(), std::begin(roundcylinder.GetIndices16()), std::end(roundcylinder.GetIndices16()));
+    indices.insert(indices.end(), std::begin(torchHandle.GetIndices16()), std::end(torchHandle.GetIndices16()));
+
 
     const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
     const UINT ibByteSize = (UINT)indices.size()  * sizeof(std::uint16_t);
@@ -1342,6 +1371,7 @@ void ShapesApp::BuildShapeGeometry()
     geo->DrawArgs["brownBox"] = brownBoxSubmesh;
     geo->DrawArgs["blackCylinder"] = blackCylinderSubmesh;
     geo->DrawArgs["roundcylinder"] = roundCylinderSubmesh;
+    geo->DrawArgs["torchHandle"] = torchHandleSubmesh;
 
 	mGeometries[geo->Name] = std::move(geo);
 }
@@ -1414,7 +1444,7 @@ void ShapesApp::BuildMaterials()
     sandbrick->DiffuseSrvHeapIndex = 1;
     sandbrick->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     sandbrick->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-    sandbrick->Roughness = 0.25f;
+    sandbrick->Roughness = 1.0f;
 
     auto iron = std::make_unique<Material>();
     iron->Name = "iron";
@@ -1422,7 +1452,7 @@ void ShapesApp::BuildMaterials()
     iron->DiffuseSrvHeapIndex = 2;
     iron->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     iron->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-    iron->Roughness = 0.25f;
+    iron->Roughness = 0.7f;
 
     auto shingle = std::make_unique<Material>();
     shingle->Name = "shingle";
@@ -1430,7 +1460,7 @@ void ShapesApp::BuildMaterials()
     shingle->DiffuseSrvHeapIndex = 3;
     shingle->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     shingle->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-    shingle->Roughness = 0.25f;
+    shingle->Roughness = 1.0f;
 
     auto stone = std::make_unique<Material>();
     stone->Name = "stone";
@@ -1438,7 +1468,7 @@ void ShapesApp::BuildMaterials()
     stone->DiffuseSrvHeapIndex = 4;
     stone->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     stone->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-    stone->Roughness = 0.25f;
+    stone->Roughness = 1.0f;
 
     auto stonebrick = std::make_unique<Material>();
     stonebrick->Name = "stonebrick";
@@ -1446,7 +1476,7 @@ void ShapesApp::BuildMaterials()
     stonebrick->DiffuseSrvHeapIndex = 5;
     stonebrick->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     stonebrick->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-    stonebrick->Roughness = 0.25f;
+    stonebrick->Roughness = 1.0f;
     
     auto woodV = std::make_unique<Material>();
     woodV->Name = "woodV";
@@ -1454,7 +1484,7 @@ void ShapesApp::BuildMaterials()
     woodV->DiffuseSrvHeapIndex = 6;
     woodV->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     woodV->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-    woodV->Roughness = 0.25f;
+    woodV->Roughness = 0.9f;
 
     auto water = std::make_unique<Material>();
     water->Name = "water";
@@ -1463,8 +1493,25 @@ void ShapesApp::BuildMaterials()
     //step 6: what happens if you change the alpha to 1.0? 100% water and no blending?
     water->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.6f);
     water->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-
     water->Roughness = 0.0f;
+
+    auto wroughtIron = std::make_unique<Material>();
+    wroughtIron->Name = "wroughtIron";
+    wroughtIron->MatCBIndex = 8;
+    wroughtIron->DiffuseSrvHeapIndex = 8;
+    //step 6: what happens if you change the alpha to 1.0? 100% water and no blending?
+    wroughtIron->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.6f);
+    wroughtIron->FresnelR0 = XMFLOAT3(0.9f, 0.9f, 0.9f);
+    wroughtIron->Roughness = 1.0f;
+
+    auto flames = std::make_unique<Material>();
+    flames->Name = "flames";
+    flames->MatCBIndex = 9;
+    flames->DiffuseSrvHeapIndex = 9;
+    //step 6: what happens if you change the alpha to 1.0? 100% water and no blending?
+    flames->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.6f);
+    flames->FresnelR0 = XMFLOAT3(0.3f, 0.3f, 0.3f);
+    flames->Roughness = 0.2f;
 
     mMaterials["grass"] = std::move(grass);
     mMaterials["sandbrick"] = std::move(sandbrick);
@@ -1474,6 +1521,8 @@ void ShapesApp::BuildMaterials()
     mMaterials["stonebrick"] = std::move(stonebrick);
     mMaterials["woodV"] = std::move(woodV);
     mMaterials["water"] = std::move(water);
+    mMaterials["wroughtIron"] = std::move(wroughtIron);
+    mMaterials["flames"] = std::move(flames);
 }
 
 void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation,float angle, std::string shapeName,std::string materialName)
@@ -1568,6 +1617,10 @@ void ShapesApp::BuildRenderItems()
     createCastlePerimeter(objCBIndex);
 
     createMainCastle(objCBIndex);
+    createTorch(objCBIndex);
+    
+    //Test shape for lighting
+    //createShapeInWorld(objCBIndex, XMFLOAT3(5.0f, 5.0f, 5.0f), XMFLOAT3(0.0, 10.0, -20.0), 0.0f, "box", "woodV");
 
  
 
@@ -1622,7 +1675,7 @@ void ShapesApp::createTower(UINT& objIndex, XMFLOAT3 location)
     //Creates main tower structure
     createShapeInWorld(objIndex, XMFLOAT3(2.0f, 7.0f, 2.0f), XMFLOAT3(location.x, location.y + 1.0f, location.z), 45.0f, "cylinder", "sandbrick");
     //Creates gray stone foundation 
-    createShapeInWorld(objIndex, XMFLOAT3(3.0f, 1.0f, 3.0f), XMFLOAT3(location.x, location.y, location.z), 0.0f, "box", "stonebrick");
+    createShapeInWorld(objIndex, XMFLOAT3(3.0f, 1.0f, 3.0f), XMFLOAT3(location.x, location.y, location.z), 0.0f, "grayBox", "stonebrick");
     //Creates platoform at top of towers 
     createShapeInWorld(objIndex, XMFLOAT3(3.0f, 0.5f, 3.0f), XMFLOAT3(location.x, location.y + 8.0f, location.z), 0.0f, "box", "sandbrick");
     //Creates thin platform "walkway" for better color variety
@@ -1687,7 +1740,7 @@ void ShapesApp::createWall(UINT& objIndex, XMFLOAT3 location, float rotation, in
     //Signs moves the piratits to correct location on wall depending on walls rotations
 
     //Creates gray stone foundation 
-    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), rotation, "box", "stonebrick");
+    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), rotation, "greyBox", "stonebrick");
     //Creates main wall structure
     createShapeInWorld(objIndex, XMFLOAT3(18.0f, 4.0f, 2.0f), XMFLOAT3(location.x, location.y +1.0f, location.z), rotation, "box", "sandbrick");
     //Creates thin platform "walkway" for better color variety
@@ -1731,7 +1784,7 @@ void ShapesApp::createWall(UINT& objIndex, XMFLOAT3 location, float rotation, in
 void ShapesApp::createMainGate(UINT& objIndex, XMFLOAT3 location)
 {
     //Creates gray stone foundation 
-    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), 0.0f, "box", "stonebrick");
+    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), 0.0f, "grayBox", "stonebrick");
     //Creates left portion of main wall
     createShapeInWorld(objIndex, XMFLOAT3(6.0f, 4.0f, 2.0f), XMFLOAT3(location.x -6.0f, location.y + 1.0f, location.z), 0.0f, "box", "sandbrick");
     //Creates right portion of main wall
@@ -1765,48 +1818,48 @@ void ShapesApp::createMainGate(UINT& objIndex, XMFLOAT3 location)
 void ShapesApp::createTowerDoors(UINT& objIndex)
 {
     //Doorframes & Doors for front left tower
-    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(-10.0f, 5.0f, -8.75f), 0.0f, "torus", "stone");
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(-10.0f, 5.0f, -8.75f), 0.0f, "torus", "iron");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(-10.0f, 5.0f, -9.0f), 0.0f, "box", "woodV");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-10.1f, 5.2f, -8.7f), 0.0f, "sphere", "iron" );
 
 
-    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(-8.75f, 5.0f, -10.0f), 90.0f, "torus", "stone");
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(-8.75f, 5.0f, -10.0f), 90.0f, "torus", "iron");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(-9.0f, 5.0f, -10.0f), 90.0f, "wedge", "woodV");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-8.65f, 5.2f, -9.9f), 0.0f, "sphere", "iron");
 
     //Doorframes & Doors for front right tower
-    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(10.0f, 5.0f, -8.75f), 0.0f, "torus", "stone");
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(10.0f, 5.0f, -8.75f), 0.0f, "torus", "iron");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(10.0f, 5.0f, -9.0f), 0.0f, "wedge", "woodV");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(9.9f, 5.2f, -8.7f), 0.0f, "sphere", "iron");
 
 
-    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(8.75f, 5.0f, -10.0f), 90.0f, "torus", "stone");
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(8.75f, 5.0f, -10.0f), 90.0f, "torus", "iron");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(9.0f, 5.0f, -10.0f), 270.0f, "wedge", "woodV");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(8.65f, 5.2f, -10.1f), 0.0f, "sphere", "iron");
 
     //Doorframes & Doors for back left tower
-    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(-10.0f, 5.0f, 8.75f), 0.0f, "torus", "stone");
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(-10.0f, 5.0f, 8.75f), 0.0f, "torus", "iron");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(-10.0f, 5.0f, 9.0f), 180.0f, "wedge", "woodV");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-9.9f, 5.2f, 8.7f), 0.0f, "sphere", "iron");
 
 
-    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(-8.75f, 5.0f, 10.0f), 90.0f, "torus", "stone");
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(-8.75f, 5.0f, 10.0f), 90.0f, "torus", "iron");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(-9.0f, 5.0f, 10.0f), 90.0f, "wedge", "woodV");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-8.65f, 5.2f, 10.1f), 0.0f, "sphere", "iron");
 
 
     //Doorframes & Doors for back right tower
-    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(10.0f, 5.0f, 8.75f), 0.0f, "torus", "stone");
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(10.0f, 5.0f, 8.75f), 0.0f, "torus", "iron");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(10.0f, 5.0f, 9.0f), 180.0f, "wedge", "woodV");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(10.1f, 5.2f, 8.7f), 0.0f, "sphere", "iron");
 
 
-    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(8.75f, 5.0f, 10.0f), 90.0f, "torus", "stone");
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(8.75f, 5.0f, 10.0f), 90.0f, "torus", "iron");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(9.0f, 5.0f, 10.0f), 270.0f, "wedge", "woodV");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(8.65f, 5.2f, 9.9f), 0.0f, "sphere", "iron");
 
     // Castle Door
-    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 2.0f, 0.2f), XMFLOAT3(0.0f, -1.0f, -5.1f), 0.0f, "torus", "stone");
+    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 2.0f, 0.2f), XMFLOAT3(0.0f, -1.0f, -5.1f), 0.0f, "torus", "iron");
     createShapeInWorld(objIndex, XMFLOAT3(2.5f, 1.5f, 0.5f), XMFLOAT3(0.0f, 0.0f, -4.8f), 180.0f, "wedge", "woodV");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.5f, 0.2f, -5.1f), 0.0f, "sphere", "iron");
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-0.5f, 0.2f, -5.1f), 0.0f, "sphere", "iron");
@@ -2017,4 +2070,21 @@ XMFLOAT3 ShapesApp::GetHillsNormal(float x, float z) const
 
     return n;
 }
+void ShapesApp::createTorch(UINT& objIndex)
+{
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(4.0, 2, -11.5), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron");
+    createShapeInWorld(objIndex, XMFLOAT3(0.4f, 0.4f, 0.4f), XMFLOAT3(4.0, 2.89, -11.5), XMFLOAT3(0.0f, 0.0f, 0.0f), "box", "flames");
 
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-4.0, 2, -11.5), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron");
+    createShapeInWorld(objIndex, XMFLOAT3(0.4f, 0.4f, 0.4f), XMFLOAT3(-4.0, 2.89, -11.5), XMFLOAT3(0.0f, 0.0f, 0.0f), "box", "flames");
+
+    mMainPassCB.Lights[1].Position = { 4.0, 3.5, -11.5 };
+    mMainPassCB.Lights[1].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[1].FalloffStart = 1;
+    mMainPassCB.Lights[1].FalloffEnd = 3;
+
+    mMainPassCB.Lights[2].Position = { -4.0, 3.5, -11.5 };
+    mMainPassCB.Lights[2].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[2].FalloffStart = 1;
+    mMainPassCB.Lights[2].FalloffEnd = 3;
+}
