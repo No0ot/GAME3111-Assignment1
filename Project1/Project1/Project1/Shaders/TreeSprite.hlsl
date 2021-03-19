@@ -4,11 +4,11 @@
 
 // Defaults for number of lights.
 #ifndef NUM_DIR_LIGHTS
-    #define NUM_DIR_LIGHTS 1
+    #define NUM_DIR_LIGHTS 2
 #endif
 
 #ifndef NUM_POINT_LIGHTS
-    #define NUM_POINT_LIGHTS 2
+    #define NUM_POINT_LIGHTS 14
 #endif
 
 #ifndef NUM_SPOT_LIGHTS

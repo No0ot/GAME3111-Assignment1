@@ -8,8 +8,11 @@
 #include "../../Common/MathHelper.h"
 #include "../../Common/UploadBuffer.h"
 #include "../../Common/GeometryGenerator.h"
+#include <time.h>
 #include "FrameResource.h"
 #include "Waves.h"
+
+#define ActiveLights = 4
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -97,6 +100,7 @@ private:
     void BuildWavesGeometry();
     void BuildShapeGeometry();
     void BuildTreeSpritesGeometry();
+    void BuildFlameSpriteGeometry();
     void BuildPSOs();
     void BuildFrameResources();
     void BuildMaterials();
@@ -105,6 +109,7 @@ private:
 
     void createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation,float angle, std::string shapeName, std::string materialName, XMFLOAT3 texscale);
     void createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, XMFLOAT3 angle, std::string shapeName, std::string materialName, XMFLOAT3 texscale);
+    void createBillboardInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, float angle, std::string shapeName, std::string materialName, XMFLOAT3 texscale);
     void createTower(UINT& objIndex, XMFLOAT3 location);
     void createWall(UINT& objIndex, XMFLOAT3 location, float rotation, int sign);
     void createMainGate(UINT& objIndex, XMFLOAT3 location);
@@ -112,6 +117,7 @@ private:
     void createTowerDoors(UINT& objIndex);
     void createCastleTowers(UINT& objIndex);
     void createMainCastle(UINT& objIndex);
+    void createBillBoards(UINT& objIndex);
 
     void createTorch(UINT& objIndex);
 
@@ -171,6 +177,9 @@ private:
     float mRadius = 15.0f;
     XMVECTOR target = XMVectorZero();
     POINT mLastMousePos;
+
+    float randomNumber = 0;
+    float angle = 90;
 };
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
@@ -227,6 +236,7 @@ bool ShapesApp::Initialize()
     BuildWavesGeometry();
     BuildShapeGeometry();
     BuildTreeSpritesGeometry();
+    BuildFlameSpriteGeometry();
     BuildMaterials();
     BuildRenderItems();
     BuildFrameResources();
@@ -257,6 +267,19 @@ void ShapesApp::OnResize()
 
 void ShapesApp::Update(const GameTimer& gt)
 {
+    srand((unsigned)time(NULL));
+    
+    for (int i = 1; i < 14; i++)
+    {
+        if (mMainPassCB.Lights[i].FalloffEnd > 1)
+        {
+            mMainPassCB.Lights[i].FalloffEnd = 4 - (sinf(angle)/1.5f);
+            angle += 0.0005f;
+        }
+    }
+
+    
+
     OnKeyboardInput(gt);
 	UpdateCamera(gt);
 
@@ -329,14 +352,14 @@ void ShapesApp::Draw(const GameTimer& gt)
 
     DrawRenderItems(mCommandList.Get(), mOpaqueRitems);
 
-    mCommandList->SetPipelineState(mPSOs["alphaTested"].Get());
-    DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::AlphaTested]);
+    //mCommandList->SetPipelineState(mPSOs["alphaTested"].Get());
+    //DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::AlphaTested]);
 
     mCommandList->SetPipelineState(mPSOs["treeSprites"].Get());
     DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::AlphaTestedTreeSprites]);
 
-    mCommandList->SetPipelineState(mPSOs["transparent"].Get());
-    DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Transparent]);
+    //mCommandList->SetPipelineState(mPSOs["transparent"].Get());
+    //DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Transparent]);
 
 
     // Indicate a state transition on the resource usage.
@@ -512,31 +535,33 @@ void ShapesApp::UpdateMaterialCBs(const GameTimer& gt)
 
 void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
 {
-	XMMATRIX view = XMLoadFloat4x4(&mView);
-	XMMATRIX proj = XMLoadFloat4x4(&mProj);
+    XMMATRIX view = XMLoadFloat4x4(&mView);
+    XMMATRIX proj = XMLoadFloat4x4(&mProj);
 
-	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
-	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
-	XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
-	XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+    XMMATRIX viewProj = XMMatrixMultiply(view, proj);
+    XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
+    XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
+    XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
 
-	XMStoreFloat4x4(&mMainPassCB.View, XMMatrixTranspose(view));
-	XMStoreFloat4x4(&mMainPassCB.InvView, XMMatrixTranspose(invView));
-	XMStoreFloat4x4(&mMainPassCB.Proj, XMMatrixTranspose(proj));
-	XMStoreFloat4x4(&mMainPassCB.InvProj, XMMatrixTranspose(invProj));
-	XMStoreFloat4x4(&mMainPassCB.ViewProj, XMMatrixTranspose(viewProj));
-	XMStoreFloat4x4(&mMainPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
-	mMainPassCB.EyePosW = mEyePos;
-	mMainPassCB.RenderTargetSize = XMFLOAT2((float)mClientWidth, (float)mClientHeight);
-	mMainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / mClientWidth, 1.0f / mClientHeight);
-	mMainPassCB.NearZ = 1.0f;
-	mMainPassCB.FarZ = 1000.0f;
-	mMainPassCB.TotalTime = gt.TotalTime();
-	mMainPassCB.DeltaTime = gt.DeltaTime();
+    XMStoreFloat4x4(&mMainPassCB.View, XMMatrixTranspose(view));
+    XMStoreFloat4x4(&mMainPassCB.InvView, XMMatrixTranspose(invView));
+    XMStoreFloat4x4(&mMainPassCB.Proj, XMMatrixTranspose(proj));
+    XMStoreFloat4x4(&mMainPassCB.InvProj, XMMatrixTranspose(invProj));
+    XMStoreFloat4x4(&mMainPassCB.ViewProj, XMMatrixTranspose(viewProj));
+    XMStoreFloat4x4(&mMainPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
+    mMainPassCB.EyePosW = mEyePos;
+    mMainPassCB.RenderTargetSize = XMFLOAT2((float)mClientWidth, (float)mClientHeight);
+    mMainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / mClientWidth, 1.0f / mClientHeight);
+    mMainPassCB.NearZ = 1.0f;
+    mMainPassCB.FarZ = 1000.0f;
+    mMainPassCB.TotalTime = gt.TotalTime();
+    mMainPassCB.DeltaTime = gt.DeltaTime();
 
-    mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.25f, 1.0f };
-    mMainPassCB.Lights[0].Direction = { -0.5, -0.5, 3.0 };
+    mMainPassCB.AmbientLight = { 0.3f, 0.3f, 0.3f, 1.0f };
+    mMainPassCB.Lights[0].Direction = { 0.1, -1.9, -0.3 };
     mMainPassCB.Lights[0].Strength = { 0.1,0.1,0.1};
+    mMainPassCB.Lights[1].Direction = { -0.1,-0.5, 0.3 };
+    mMainPassCB.Lights[1].Strength = { 0.1,0.1,0.1 };
 
 	auto currPassCB = mCurrFrameResource->PassCB.get();
 	currPassCB->CopyData(0, mMainPassCB);
@@ -649,7 +674,7 @@ void ShapesApp::LoadTextures()
 
     auto flameTex = std::make_unique<Texture>();
     flameTex->Name = "flameTex";
-    flameTex->Filename = L"../../Textures/FlameTexture.dds";
+    flameTex->Filename = L"../../Textures/FlameResize.dds";
     ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
         mCommandList.Get(), flameTex->Filename.c_str(),
         flameTex->Resource, flameTex->UploadHeap));
@@ -798,20 +823,28 @@ void ShapesApp::BuildDescriptorHeaps()
     // next descriptor
     hDescriptor.Offset(1, mCbvSrvDescriptorSize);
 
+    auto desc2 = flameTex->GetDesc();
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
     srvDesc.Format = flameTex->GetDesc().Format;
+    srvDesc.Texture2DArray.MostDetailedMip = 0;
+    srvDesc.Texture2DArray.MipLevels = -1;
+    srvDesc.Texture2DArray.FirstArraySlice = 0;
+    srvDesc.Texture2DArray.ArraySize = flameTex->GetDesc().DepthOrArraySize;
     md3dDevice->CreateShaderResourceView(flameTex.Get(), &srvDesc, hDescriptor);
 
     // next descriptor
     hDescriptor.Offset(1, mCbvSrvDescriptorSize);
 
-    auto desc = treeArrayTex->GetDesc();
-    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-    srvDesc.Format = treeArrayTex->GetDesc().Format;
-    srvDesc.Texture2DArray.MostDetailedMip = 0;
-    srvDesc.Texture2DArray.MipLevels = -1;
-    srvDesc.Texture2DArray.FirstArraySlice = 0;
-    srvDesc.Texture2DArray.ArraySize = treeArrayTex->GetDesc().DepthOrArraySize;
-    md3dDevice->CreateShaderResourceView(treeArrayTex.Get(), &srvDesc, hDescriptor);
+   auto desc = treeArrayTex->GetDesc();
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+	srvDesc.Format = treeArrayTex->GetDesc().Format;
+	srvDesc.Texture2DArray.MostDetailedMip = 0;
+	srvDesc.Texture2DArray.MipLevels = -1;
+	srvDesc.Texture2DArray.FirstArraySlice = 0;
+	srvDesc.Texture2DArray.ArraySize = treeArrayTex->GetDesc().DepthOrArraySize;
+	md3dDevice->CreateShaderResourceView(treeArrayTex.Get(), &srvDesc, hDescriptor);
+
+
 }
 
 //assuming we have n renter items, we can populate the CBV heap with the following code where descriptors 0 to n-
@@ -956,15 +989,15 @@ void ShapesApp::BuildRootSignature()
 
 void ShapesApp::BuildShadersAndInputLayout()
 {
-    const D3D_SHADER_MACRO defines[] =
-    {
-        "FOG", "1",
-        NULL, NULL
-    };
+    //const D3D_SHADER_MACRO defines[] =
+    //{
+    //    "FOG", "1",
+    //    NULL, NULL
+    //};
 
     const D3D_SHADER_MACRO alphaTestDefines[] =
     {
-        "FOG", "1",
+       
         "ALPHA_TEST", "1",
         NULL, NULL
     };
@@ -1110,9 +1143,9 @@ void ShapesApp::BuildTreeSpritesGeometry()
         XMFLOAT2 Size;
     };
 
-    static const int treeCount = 16;
+    static const int flameCount = 16;
     std::array<TreeSpriteVertex, 16> vertices;
-    for (UINT i = 0; i < treeCount; ++i)
+    for (UINT i = 0; i < flameCount; ++i)
     {
         float x = MathHelper::RandF(-45.0f, 45.0f);
         float z = MathHelper::RandF(-45.0f, 45.0f);
@@ -1124,12 +1157,14 @@ void ShapesApp::BuildTreeSpritesGeometry()
         vertices[i].Pos = XMFLOAT3(x, y, z);
         vertices[i].Size = XMFLOAT2(20.0f, 20.0f);
     }
+    vertices[15].Pos = XMFLOAT3(0, 6, -30);
+    vertices[15].Size = XMFLOAT2(20.0f, 20.0f);
 
     std::array<std::uint16_t, 16> indices =
     {
-        0, 1, 2, 3, 4, 5, 6, 7,
-        8, 9, 10, 11, 12, 13, 14, 15
+        0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
     };
+
 
     const UINT vbByteSize = (UINT)vertices.size() * sizeof(TreeSpriteVertex);
     const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
@@ -1163,6 +1198,100 @@ void ShapesApp::BuildTreeSpritesGeometry()
 
     mGeometries["treeSpritesGeo"] = std::move(geo);
 
+}
+void ShapesApp::BuildFlameSpriteGeometry()
+{
+
+    //step5
+    struct FlameSpriteVertex
+    {
+        XMFLOAT3 Pos;
+        XMFLOAT2 Size;
+
+    };
+
+    static const int flameCount = 14;
+    std::array<FlameSpriteVertex, flameCount> vertices;
+
+
+
+    vertices[0].Pos = XMFLOAT3(4.0, 3.85, -11.2);
+
+    vertices[1].Pos = XMFLOAT3(-4.0, 3.85, -11.2);
+
+    vertices[2].Pos = XMFLOAT3(1.5, 3.85, -5.2);
+
+    vertices[3].Pos = XMFLOAT3(-1.5, 3.85, -5.2);
+
+    vertices[4].Pos = XMFLOAT3(8.8f, 6.8f, -9.1);
+
+    vertices[5].Pos = XMFLOAT3(-8.8f, 6.8f, -9.1);
+
+    vertices[6].Pos = XMFLOAT3(8.8f, 6.8f, 9.1);
+
+    vertices[7].Pos = XMFLOAT3(-8.8f, 6.8f, 9.1);
+
+    vertices[8].Pos = XMFLOAT3(9.25f, 7.0f, -8.65f);
+
+    vertices[9].Pos = XMFLOAT3(-10.5f, 7.0f, -8.65f);
+
+    vertices[10].Pos = XMFLOAT3(10.6f, 6.9f, 8.65f);
+
+    vertices[11].Pos = XMFLOAT3(-9.15f, 6.9f, 8.65f);
+
+    vertices[12].Pos = XMFLOAT3(1.5f, 11.3f, 0.0f);
+
+    vertices[13].Pos = XMFLOAT3(-1.5f, 11.3f, 0.0f);
+
+
+
+   
+
+
+    for (int i = 0; i < flameCount; i++)
+    {
+        vertices[i].Size = XMFLOAT2(2.0f, 2.0f);
+    }
+
+    //vertices[4].Pos = XMFLOAT3(-1.5, 3.5, -5.0);
+    
+
+    std::array<std::uint16_t, flameCount> indices =
+    {
+        0, 1, 2, 3, 4, 5,6,7,8,9,10,11,12,13
+    };
+
+    const UINT vbByteSize = (UINT)vertices.size() * sizeof(FlameSpriteVertex);
+    const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+
+    auto geo = std::make_unique<MeshGeometry>();
+    geo->Name = "flameSpritesGeo";
+
+    ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->VertexBufferCPU));
+    CopyMemory(geo->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
+
+    ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->IndexBufferCPU));
+    CopyMemory(geo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
+
+    geo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+        mCommandList.Get(), vertices.data(), vbByteSize, geo->VertexBufferUploader);
+
+    geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+        mCommandList.Get(), indices.data(), ibByteSize, geo->IndexBufferUploader);
+
+    geo->VertexByteStride = sizeof(FlameSpriteVertex);
+    geo->VertexBufferByteSize = vbByteSize;
+    geo->IndexFormat = DXGI_FORMAT_R16_UINT;
+    geo->IndexBufferByteSize = ibByteSize;
+
+    SubmeshGeometry submesh;
+    submesh.IndexCount = (UINT)indices.size();
+    submesh.StartIndexLocation = 0;
+    submesh.BaseVertexLocation = 0;
+
+    geo->DrawArgs["points"] = submesh;
+
+    mGeometries["flameSpritesGeo"] = std::move(geo);
 }
 void ShapesApp::BuildShapeGeometry()
 {
@@ -1572,39 +1701,41 @@ void ShapesApp::BuildPSOs()
     //
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC alphaTestedPsoDesc = opaquePsoDesc;
-    alphaTestedPsoDesc.PS =
-    {
-        reinterpret_cast<BYTE*>(mShaders["alphaTestedPS"]->GetBufferPointer()),
-        mShaders["alphaTestedPS"]->GetBufferSize()
-    };
-    alphaTestedPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-    ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&alphaTestedPsoDesc, IID_PPV_ARGS(&mPSOs["alphaTested"])));
-
-    //
-    // PSO for tree sprites
-    //
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC treeSpritePsoDesc = opaquePsoDesc;
-    treeSpritePsoDesc.VS =
+    ZeroMemory(&alphaTestedPsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+    alphaTestedPsoDesc.InputLayout = { mTreeSpriteInputLayout.data(), (UINT)mTreeSpriteInputLayout.size() };
+    alphaTestedPsoDesc.pRootSignature = mRootSignature.Get();
+    alphaTestedPsoDesc.VS =
     {
         reinterpret_cast<BYTE*>(mShaders["treeSpriteVS"]->GetBufferPointer()),
         mShaders["treeSpriteVS"]->GetBufferSize()
     };
-    treeSpritePsoDesc.GS =
+
+    alphaTestedPsoDesc.GS =
     {
         reinterpret_cast<BYTE*>(mShaders["treeSpriteGS"]->GetBufferPointer()),
         mShaders["treeSpriteGS"]->GetBufferSize()
     };
-    treeSpritePsoDesc.PS =
+
+    alphaTestedPsoDesc.PS =
     {
         reinterpret_cast<BYTE*>(mShaders["treeSpritePS"]->GetBufferPointer()),
         mShaders["treeSpritePS"]->GetBufferSize()
     };
-    //step1
-    treeSpritePsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
-    treeSpritePsoDesc.InputLayout = { mTreeSpriteInputLayout.data(), (UINT)mTreeSpriteInputLayout.size() };
-    treeSpritePsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+    alphaTestedPsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    alphaTestedPsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    alphaTestedPsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+    alphaTestedPsoDesc.SampleMask = UINT_MAX;
+    alphaTestedPsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+    alphaTestedPsoDesc.NumRenderTargets = 1;
+    alphaTestedPsoDesc.RTVFormats[0] = mBackBufferFormat;
+    //there is abug with F2 key that is supposed to turn on the multisampling!
+    //Set4xMsaaState(true);
+    //m4xMsaaState = true;
 
-    ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&treeSpritePsoDesc, IID_PPV_ARGS(&mPSOs["treeSprites"])));
+    alphaTestedPsoDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
+    alphaTestedPsoDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
+    alphaTestedPsoDesc.DSVFormat = mDepthStencilFormat;
+    ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&alphaTestedPsoDesc, IID_PPV_ARGS(&mPSOs["treeSprites"])));
 }
 
 void ShapesApp::BuildFrameResources()
@@ -1755,6 +1886,58 @@ void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 tr
     temp->BaseVertexLocation = temp->Geo->DrawArgs[shapeName].BaseVertexLocation;
     mAllRitems.push_back(std::move(temp));
 }
+void ShapesApp::createBillboardInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, float angle, std::string shapeName, std::string materialName, XMFLOAT3 texscale)
+{
+    auto flameSpritesRitem = std::make_unique<RenderItem>();
+    XMStoreFloat4x4(&flameSpritesRitem->World, XMMatrixScaling(scaling.x, scaling.y, scaling.z) * XMMatrixRotationY(XMConvertToRadians(angle)) * XMMatrixTranslation(translation.x, translation.y + (0.5 * scaling.y), translation.z));
+    //XMStoreFloat4x4(&flameSpritesRitem->TexTransform, XMMatrixScaling(texscale.x, texscale.y, texscale.z));
+
+    flameSpritesRitem->ObjCBIndex = objIndex++;
+    flameSpritesRitem->Geo = mGeometries["flameSpritesGeo"].get();
+    flameSpritesRitem->Mat = mMaterials[materialName].get();
+
+    //step2
+    flameSpritesRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+    flameSpritesRitem->IndexCount = flameSpritesRitem->Geo->DrawArgs[shapeName].IndexCount;
+    flameSpritesRitem->StartIndexLocation = flameSpritesRitem->Geo->DrawArgs[shapeName].StartIndexLocation;
+    flameSpritesRitem->BaseVertexLocation = flameSpritesRitem->Geo->DrawArgs[shapeName].BaseVertexLocation;
+
+    mRitemLayer[(int)RenderLayer::AlphaTestedTreeSprites].push_back(flameSpritesRitem.get());
+    mAllRitems.push_back(std::move(flameSpritesRitem));
+}
+
+void ShapesApp::createBillBoards(UINT& objIndex)
+{
+    //auto treeSpritesRitem = std::make_unique<RenderItem>();
+    //XMStoreFloat4x4(&treeSpritesRitem->World, XMMatrixTranslation(10.0f, -1.5f, -30.0f));
+    //treeSpritesRitem->ObjCBIndex = objIndex++;
+    //treeSpritesRitem->Mat = mMaterials["treeSprites"].get();
+    //treeSpritesRitem->Geo = mGeometries["treeSpritesGeo"].get();
+    ////step2
+    //treeSpritesRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+    //treeSpritesRitem->IndexCount = treeSpritesRitem->Geo->DrawArgs["points"].IndexCount;
+    //treeSpritesRitem->StartIndexLocation = treeSpritesRitem->Geo->DrawArgs["points"].StartIndexLocation;
+    //treeSpritesRitem->BaseVertexLocation = treeSpritesRitem->Geo->DrawArgs["points"].BaseVertexLocation;
+
+    //mRitemLayer[(int)RenderLayer::AlphaTestedTreeSprites].push_back(treeSpritesRitem.get());
+    //mAllRitems.push_back(std::move(treeSpritesRitem));
+
+    auto flameSpritesRitem = std::make_unique<RenderItem>();
+    XMStoreFloat4x4(&flameSpritesRitem->World, XMMatrixTranslation(0.0f, 0.f, -25.0f));
+    flameSpritesRitem->ObjCBIndex = objIndex++;
+    flameSpritesRitem->Mat = mMaterials["flames"].get();
+    flameSpritesRitem->Geo = mGeometries["flameSpritesGeo"].get();
+    //step2
+    flameSpritesRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+    flameSpritesRitem->IndexCount = flameSpritesRitem->Geo->DrawArgs["points"].IndexCount;
+    flameSpritesRitem->StartIndexLocation = flameSpritesRitem->Geo->DrawArgs["points"].StartIndexLocation;
+    flameSpritesRitem->BaseVertexLocation = flameSpritesRitem->Geo->DrawArgs["points"].BaseVertexLocation;
+
+    mRitemLayer[(int)RenderLayer::AlphaTestedTreeSprites].push_back(flameSpritesRitem.get());
+    mAllRitems.push_back(std::move(flameSpritesRitem));
+}
+
+
 
 void ShapesApp::BuildRenderItems()
 {
@@ -1789,19 +1972,7 @@ void ShapesApp::BuildRenderItems()
     gridRitem->BaseVertexLocation = gridRitem->Geo->DrawArgs["grid"].BaseVertexLocation;
     mAllRitems.push_back(std::move(gridRitem));
 
-    auto treeSpritesRitem = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&treeSpritesRitem->World, XMMatrixTranslation(10.0f, -1.5f, -30.0f));
-    treeSpritesRitem->ObjCBIndex = objCBIndex++;
-    treeSpritesRitem->Mat = mMaterials["treeSprites"].get();
-    treeSpritesRitem->Geo = mGeometries["treeSpritesGeo"].get();
-    //step2
-    treeSpritesRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
-    treeSpritesRitem->IndexCount = treeSpritesRitem->Geo->DrawArgs["points"].IndexCount;
-    treeSpritesRitem->StartIndexLocation = treeSpritesRitem->Geo->DrawArgs["points"].StartIndexLocation;
-    treeSpritesRitem->BaseVertexLocation = treeSpritesRitem->Geo->DrawArgs["points"].BaseVertexLocation;
-
-    mRitemLayer[(int)RenderLayer::AlphaTestedTreeSprites].push_back(treeSpritesRitem.get());
-    mAllRitems.push_back(std::move(treeSpritesRitem));
+    createBillBoards(objCBIndex);
 
     createCastlePerimeter(objCBIndex);
 
@@ -2261,21 +2432,117 @@ XMFLOAT3 ShapesApp::GetHillsNormal(float x, float z) const
 }
 void ShapesApp::createTorch(UINT& objIndex)
 {
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(4.0, 2, -11.5), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(0.4f, 0.4f, 0.4f), XMFLOAT3(4.0, 2.89, -11.5), XMFLOAT3(0.0f, 0.0f, 0.0f), "box", "flames", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(4.0, 2, -11.0), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
 
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-4.0, 2, -11.5), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(0.4f, 0.4f, 0.4f), XMFLOAT3(-4.0, 2.89, -11.5), XMFLOAT3(0.0f, 0.0f, 0.0f), "box", "flames", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-4.0, 2, -11.0), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    
+    int lightNumber = 2;
 
-    mMainPassCB.Lights[1].Position = { 4.0, 3.5, -11.5 };
-    mMainPassCB.Lights[1].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[1].FalloffStart = 1;
-    mMainPassCB.Lights[1].FalloffEnd = 3;
 
-    mMainPassCB.Lights[2].Position = { -4.0, 3.5, -11.5 };
-    mMainPassCB.Lights[2].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[2].FalloffStart = 1;
-    mMainPassCB.Lights[2].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { 4.0, 3.5, -11.5 };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    lightNumber++;
+
+    mMainPassCB.Lights[lightNumber].Position = { -4.0, 3.5, -11.5};
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    lightNumber++;
+
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(1.5, 2, -5.0), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-1.5, 2, -5.0), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+
+    mMainPassCB.Lights[lightNumber].Position = { 1.5, 3.5, -5.5};
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    lightNumber++;
+    mMainPassCB.Lights[lightNumber].Position = { -1.5, 3.5, -5.5};
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    lightNumber++;
+
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(8.75f, 5.0f, -9.1f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-8.75f, 5.0f, -9.1f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+
+    mMainPassCB.Lights[lightNumber].Position = { 8.2f, 6.8f, -9.8 };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    lightNumber++;
+    mMainPassCB.Lights[lightNumber].Position = { -8.2f, 6.8f, -9.8f };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    lightNumber++;
+
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(8.75f, 5.0f, 9.1f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-8.75f, 5.0f, 9.1f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+
+    mMainPassCB.Lights[lightNumber].Position = { 8.2f, 6.8f, 9.8 };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    lightNumber++;
+    mMainPassCB.Lights[lightNumber].Position = { -8.2f, 6.8f, 9.8f };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    lightNumber++;
+
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(9.25f, 5.0f, -8.73f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-10.5f, 5.0f, -8.73f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+
+    mMainPassCB.Lights[lightNumber].Position = { 9.25f, 7.0f, -8.0f };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    lightNumber++;
+    mMainPassCB.Lights[lightNumber].Position = { -10.5f, 7.0f, -8.0f };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    lightNumber++;
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(10.6f, 5.0f, 8.73f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-9.15f, 5.0f, 8.73f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+
+    mMainPassCB.Lights[lightNumber].Position = { 10.1f, 7.0f, 8.0f };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    lightNumber++;
+    mMainPassCB.Lights[lightNumber].Position = { -9.15f, 7.0f, 8.0f };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    lightNumber++;
+
+
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(1.5f, 9.5f, 0.0f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-1.5f, 9.5f, 0.0f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+
+    mMainPassCB.Lights[lightNumber].Position = { 2.0f, 12.5f, -1.0f };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    lightNumber++;
+    mMainPassCB.Lights[lightNumber].Position = { -2.0f, 12.5f, -1.0f };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    lightNumber++;
+
+
+    //-8.75f, 5.0f, -10.0f
 }
 
 
