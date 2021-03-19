@@ -11,6 +11,9 @@
 #include <time.h>
 #include "FrameResource.h"
 #include "Waves.h"
+#include <deque>
+#include <queue>
+#include <vector>
 
 #define ActiveLights = 4
 
@@ -180,6 +183,12 @@ private:
 
     float randomNumber = 0;
     float angle = 90;
+    float fickerArray[16] = { 0 };
+    float minimumFlicker = 4;
+    float maximumFlicker = 5;
+    int smoothing = 1;
+    float lastSum[16] = { 0 };
+    std::vector<std::queue<float>> smoothingQueue;
 };
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
@@ -240,6 +249,13 @@ bool ShapesApp::Initialize()
     BuildMaterials();
     BuildRenderItems();
     BuildFrameResources();
+
+    for (int i = 0; i < 17; i++)
+    {
+        smoothingQueue.push_back(std::queue<float>());
+        smoothingQueue[i].push(smoothing);
+    }
+    
    
 
     //BuildConstantBufferViews();
@@ -267,16 +283,35 @@ void ShapesApp::OnResize()
 
 void ShapesApp::Update(const GameTimer& gt)
 {
+
+
     srand((unsigned)time(NULL));
+
+    for (int i = 0; i < 4; i++)
+    {
+        int randomLight = rand() % (15 - 2 + 1) + 2;
+        while (smoothingQueue[randomLight].size() >= smoothing)
+        {
+            lastSum[randomLight] -= smoothingQueue[randomLight].front();
+            smoothingQueue[randomLight].pop();
+        }
+
+            
+            float newVal = rand() % 3 + minimumFlicker;
+            smoothingQueue[randomLight].push(newVal);
+            lastSum[randomLight] += newVal;
+            mMainPassCB.Lights[randomLight].FalloffEnd = lastSum[randomLight] / (float)smoothingQueue[randomLight].size();
+        
+    }
     
-    for (int i = 1; i < 14; i++)
+    /*for (int i = 1; i < 14; i++)
     {
         if (mMainPassCB.Lights[i].FalloffEnd > 1)
         {
             mMainPassCB.Lights[i].FalloffEnd = 4 - (sinf(angle)/1.5f);
             angle += 0.0005f;
         }
-    }
+    }*/
 
     
 
