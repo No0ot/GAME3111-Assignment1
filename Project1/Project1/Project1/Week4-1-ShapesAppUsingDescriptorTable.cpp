@@ -1797,8 +1797,8 @@ void ShapesApp::BuildMaterials()
     sandbrick->MatCBIndex = 1;
     sandbrick->DiffuseSrvHeapIndex = 1;
     sandbrick->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-    sandbrick->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-    sandbrick->Roughness = 1.0f;
+    sandbrick->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+    sandbrick->Roughness = 0.0f;
 
     auto iron = std::make_unique<Material>();
     iron->Name = "iron";
@@ -1806,7 +1806,7 @@ void ShapesApp::BuildMaterials()
     iron->DiffuseSrvHeapIndex = 2;
     iron->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     iron->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-    iron->Roughness = 0.7f;
+    iron->Roughness = 0.8f;
 
     auto shingle = std::make_unique<Material>();
     shingle->Name = "shingle";
@@ -1814,31 +1814,31 @@ void ShapesApp::BuildMaterials()
     shingle->DiffuseSrvHeapIndex = 3;
     shingle->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     shingle->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-    shingle->Roughness = 1.0f;
+    shingle->Roughness = 0.8f;
 
     auto stone = std::make_unique<Material>();
     stone->Name = "stone";
     stone->MatCBIndex = 4;
     stone->DiffuseSrvHeapIndex = 4;
     stone->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-    stone->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-    stone->Roughness = 1.0f;
+    stone->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+    stone->Roughness = 0.2f;
 
     auto stonebrick = std::make_unique<Material>();
     stonebrick->Name = "stonebrick";
     stonebrick->MatCBIndex = 5;
     stonebrick->DiffuseSrvHeapIndex = 5;
     stonebrick->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-    stonebrick->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-    stonebrick->Roughness = 1.0f;
+    stonebrick->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+    stonebrick->Roughness = 0.2f;
     
     auto woodV = std::make_unique<Material>();
     woodV->Name = "woodV";
     woodV->MatCBIndex = 6;
     woodV->DiffuseSrvHeapIndex = 6;
     woodV->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-    woodV->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-    woodV->Roughness = 0.9f;
+    woodV->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+    woodV->Roughness = 0.2f;
 
     auto water = std::make_unique<Material>();
     water->Name = "water";
@@ -1855,8 +1855,8 @@ void ShapesApp::BuildMaterials()
     wroughtIron->DiffuseSrvHeapIndex = 8;
     //step 6: what happens if you change the alpha to 1.0? 100% water and no blending?
     wroughtIron->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.6f);
-    wroughtIron->FresnelR0 = XMFLOAT3(0.9f, 0.9f, 0.9f);
-    wroughtIron->Roughness = 1.0f;
+    wroughtIron->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
+    wroughtIron->Roughness = 0.2f;
 
     auto flames = std::make_unique<Material>();
     flames->Name = "flames";
@@ -2382,12 +2382,12 @@ void ShapesApp::createMainCastle(UINT& objIndex)
     createShapeInWorld(objIndex, XMFLOAT3(10.0f, 0.1f, 10.0f), XMFLOAT3(0.0, 10.1, 0.0), 0.0f, "box", "stonebrick", XMFLOAT3(2.0f, 2.0f, 1.0f));
 
     // Diamond Holders
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(1.0, 10.0, 1.0), 75.0f, "triprism",   "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(-1.0, 10.0, 1.0),-15.0f, "triprism",  "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(1.0, 10.0, -1.0), 45.0f, "triprism",  "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(-1.0, 10.0, -1.0), 15.0f, "triprism", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(1.0, 10.0, 1.0), 75.0f, "triprism",   "stone", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(-1.0, 10.0, 1.0),-15.0f, "triprism",  "stone", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(1.0, 10.0, -1.0), 45.0f, "triprism",  "stone", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(-1.0, 10.0, -1.0), 15.0f, "triprism", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f));
 
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.5f, 1.0f), XMFLOAT3(0.0, 12.5, 0.0), 0.0f, "diamond", "water", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.5f, 1.0f), XMFLOAT3(0.0, 12.5, 0.0), 0.0f, "diamond", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
 }
 
 std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> ShapesApp::GetStaticSamplers()
