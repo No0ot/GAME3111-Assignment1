@@ -594,7 +594,7 @@ void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
 
     mMainPassCB.AmbientLight = { 0.3f, 0.3f, 0.3f, 1.0f };
     mMainPassCB.Lights[0].Direction = { 0.1, -1.9, -0.3 };
-    mMainPassCB.Lights[0].Strength = { 0.1,0.1,0.1};
+    mMainPassCB.Lights[0].Strength = { 0.5,0.5,0.5};
     mMainPassCB.Lights[1].Direction = { -0.1,-0.5, 0.3 };
     mMainPassCB.Lights[1].Strength = { 0.1,0.1,0.1 };
 
@@ -1788,9 +1788,9 @@ void ShapesApp::BuildMaterials()
     grass->Name = "grass";
     grass->MatCBIndex = 0;
     grass->DiffuseSrvHeapIndex = 0;
-    grass->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-    grass->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-    grass->Roughness = 0.25f;
+    grass->DiffuseAlbedo = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
+    grass->FresnelR0 = XMFLOAT3(0.001f, 0.001f, 0.001f);
+    grass->Roughness = 0.01f;
 
     auto sandbrick = std::make_unique<Material>();
     sandbrick->Name = "sandbrick";
@@ -1845,7 +1845,7 @@ void ShapesApp::BuildMaterials()
     water->MatCBIndex = 7;
     water->DiffuseSrvHeapIndex = 7;
     //step 6: what happens if you change the alpha to 1.0? 100% water and no blending?
-    water->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.6f);
+    water->DiffuseAlbedo = XMFLOAT4(0.8f, 0.8f, 0.8f, 0.6f);
     water->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
     water->Roughness = 0.0f;
 
@@ -1979,7 +1979,7 @@ void ShapesApp::BuildRenderItems()
 	UINT objCBIndex = 0;
 
     auto wavesRitem = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&wavesRitem->World, XMMatrixRotationY(XMConvertToRadians(-45.0f)) * XMMatrixTranslation(10.0f, -5.5f, -30.0f));
+    XMStoreFloat4x4(&wavesRitem->World, XMMatrixScaling(1.5f, 1.0f, 1.5f) * XMMatrixRotationY(XMConvertToRadians(-45.0f)) * XMMatrixTranslation(10.0f, -5.5f, -30.0f));
     XMStoreFloat4x4(&wavesRitem->TexTransform, XMMatrixScaling(5.0f, 5.0f, 1.0f));
     wavesRitem->ObjCBIndex = objCBIndex++;
     wavesRitem->Mat = mMaterials["water"].get();
@@ -2068,13 +2068,13 @@ void ShapesApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::v
 void ShapesApp::createTower(UINT& objIndex, XMFLOAT3 location)
 {
     //Creates main tower structure
-    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 7.0f, 2.0f), XMFLOAT3(location.x, location.y + 1.0f, location.z), 45.0f, "cylinder", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 7.0f, 2.0f), XMFLOAT3(location.x, location.y + 1.0f, location.z), 45.0f, "cylinder", "sandbrick", XMFLOAT3(2.0f, 1.5f, 1.0f));
     //Creates gray stone foundation 
     createShapeInWorld(objIndex, XMFLOAT3(3.0f, 1.0f, 3.0f), XMFLOAT3(location.x, location.y, location.z), 0.0f, "grayBox", "stonebrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
     //Creates platoform at top of towers 
-    createShapeInWorld(objIndex, XMFLOAT3(3.0f, 0.5f, 3.0f), XMFLOAT3(location.x, location.y + 8.0f, location.z), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(3.0f, 0.5f, 3.0f), XMFLOAT3(location.x, location.y + 8.0f, location.z), 0.0f, "box", "sandbrick", XMFLOAT3(1.5f, 0.25f, 0.5f));
     //Creates thin platform "walkway" for better color variety
-   createShapeInWorld(objIndex, XMFLOAT3(2.5f, 0.5f, 2.5f), XMFLOAT3(location.x, location.y + 8.1f, location.z), 0.0f, "box", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f));
+   createShapeInWorld(objIndex, XMFLOAT3(2.5f, 0.5f, 2.5f), XMFLOAT3(location.x, location.y + 8.1f, location.z), 90.0f, "box", "woodV", XMFLOAT3(0.25f, 1.0f, 1.0f));
 
     //Creates pirapits for tops of towers
     for (int i = 0; i < 7; i++)
@@ -2083,11 +2083,11 @@ void ShapesApp::createTower(UINT& objIndex, XMFLOAT3 location)
 
         if (i % 2 == 0)
         {
-            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.5f + (temp / 2), location.y + 8.5f, location.z - 1.5f), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.5f + (temp / 2), location.y + 8.5f, location.z - 1.5f), 0.0f, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f));
             createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.5f + (temp / 2), location.y + 9.5f, location.z - 1.5f), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f));
         }
         else
-            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.5f + (temp / 2), location.y + 8.5f, location.z - 1.5f), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.5f + (temp / 2), location.y + 8.5f, location.z - 1.5f), 0.0f, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f));
 
     }
     for (int i = 0; i < 7; i++)
@@ -2096,11 +2096,11 @@ void ShapesApp::createTower(UINT& objIndex, XMFLOAT3 location)
 
         if (i % 2 == 0)
         {
-            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.5f + (temp / 2), location.y + 8.5f, location.z + 1.5f), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.5f + (temp / 2), location.y + 8.5f, location.z + 1.5f), 0.0f, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f));
             createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.5f + (temp / 2), location.y + 9.5f, location.z + 1.5f), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f));
         }
         else
-            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.5f + (temp / 2), location.y + 8.5f, location.z + 1.5f), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.5f + (temp / 2), location.y + 8.5f, location.z + 1.5f), 0.0f, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f));
     }
 
     for (int i = 0; i < 5; i++)
@@ -2108,10 +2108,10 @@ void ShapesApp::createTower(UINT& objIndex, XMFLOAT3 location)
         float temp = i;
 
         if (i % 2 == 0)
-            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.5f , location.y + 8.5f, location.z - 1.0f + (temp / 2)), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.5f , location.y + 8.5f, location.z - 1.0f + (temp / 2)), 0.0f, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f));
         else
         {
-            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.5f, location.y + 8.5f, location.z - 1.0f + (temp / 2)), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.5f, location.y + 8.5f, location.z - 1.0f + (temp / 2)), 0.0f, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f));
             createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.5f, location.y + 9.5f, location.z - 1.0f + (temp/2)), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f));
         }
     }
@@ -2121,10 +2121,10 @@ void ShapesApp::createTower(UINT& objIndex, XMFLOAT3 location)
         float temp = i;
 
         if (i % 2 == 0)
-            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x + 1.5f, location.y + 8.5f, location.z - 1.0f + (temp / 2)), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x + 1.5f, location.y + 8.5f, location.z - 1.0f + (temp / 2)), 0.0f, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f));
         else
         {
-            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x + 1.5f, location.y + 8.5f, location.z - 1.0f + (temp / 2)), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x + 1.5f, location.y + 8.5f, location.z - 1.0f + (temp / 2)), 0.0f, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f));
             createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x + 1.5f, location.y + 9.5f, location.z - 1.0f + (temp / 2)), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f));
         }
     }
@@ -2135,9 +2135,9 @@ void ShapesApp::createWall(UINT& objIndex, XMFLOAT3 location, float rotation, in
     //Signs moves the piratits to correct location on wall depending on walls rotations
 
     //Creates gray stone foundation 
-    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), rotation, "box", "stonebrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), rotation, "box", "stonebrick", XMFLOAT3(10.0f, 0.8f, 1.0f));
     //Creates main wall structure
-    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 4.0f, 2.0f), XMFLOAT3(location.x, location.y +1.0f, location.z), rotation, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 4.0f, 2.0f), XMFLOAT3(location.x, location.y +1.0f, location.z), rotation, "box", "sandbrick", XMFLOAT3(2.5f, 0.5f, 1.0f));
     //Creates thin platform "walkway" for better color variety
     createShapeInWorld(objIndex, XMFLOAT3(18.0f, 0.1f, 2.0f), XMFLOAT3(location.x, location.y + 5.0f, location.z), rotation, "box", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f));
  
@@ -2150,12 +2150,12 @@ void ShapesApp::createWall(UINT& objIndex, XMFLOAT3 location, float rotation, in
 
             if (i % 2 == 0)
             {
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 8.5f + (temp / 2), location.y + 5.0f, location.z - 1.0f * sign), rotation, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 8.5f + (temp / 2), location.y + 5.0f, location.z - 1.0f * sign), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f));
                 //Adds pyramid top to pirapites
                 createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 8.5f + (temp / 2), location.y + 6.0f, location.z - 1.0f *sign), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f));
             }
             else
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 8.5f + (temp / 2), location.y + 5.0f, location.z - 1.0f * sign), rotation, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 8.5f + (temp / 2), location.y + 5.0f, location.z - 1.0f * sign), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f));
         }
     }
     else
@@ -2166,12 +2166,12 @@ void ShapesApp::createWall(UINT& objIndex, XMFLOAT3 location, float rotation, in
 
             if (i % 2 == 0)
             {
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z - 8.5f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z - 8.5f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f));
                 //Adds pyramid top to pirapites
                 createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 6.0f, location.z - 8.5f + (temp / 2)), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f));
             }
             else
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z - 1.0f - 8.5f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z - 1.0f - 8.5f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f));
         }
     }
 
@@ -2179,15 +2179,15 @@ void ShapesApp::createWall(UINT& objIndex, XMFLOAT3 location, float rotation, in
 void ShapesApp::createMainGate(UINT& objIndex, XMFLOAT3 location)
 {
     //Creates gray stone foundation 
-    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), 0.0f, "grayBox", "stonebrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), 0.0f, "grayBox", "stonebrick", XMFLOAT3(6.0f, 1.5f, 1.0f));
     //Creates left portion of main wall
-    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 4.0f, 2.0f), XMFLOAT3(location.x -6.0f, location.y + 1.0f, location.z), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 4.0f, 2.0f), XMFLOAT3(location.x -6.0f, location.y + 1.0f, location.z), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 0.5f, 1.0f));
     //Creates right portion of main wall
-    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 4.0f, 2.0f), XMFLOAT3(location.x + 6.0f, location.y + 1.0f, location.z), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 4.0f, 2.0f), XMFLOAT3(location.x + 6.0f, location.y + 1.0f, location.z), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 0.5f, 1.0f));
     //Creates fills in gap below pirapits at center of wall
-    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 1.0f, 2.0f), XMFLOAT3(location.x , location.y + 4.0f, location.z), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 1.0f, 2.0f), XMFLOAT3(location.x , location.y + 4.0f, location.z), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 0.125f, 1.0f));
     //Creats "drawbridge" 
-    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 1.0f, 5.0f), XMFLOAT3(location.x, location.y, location.z-3.5f), 0.0f, "wedge", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 1.0f, 5.0f), XMFLOAT3(location.x, location.y, location.z-3.5f), 0.0f, "wedge", "woodV", XMFLOAT3(2.0f, 2.0f, 1.0f));
     //Creates thin platform "walkway" for better color variety
     createShapeInWorld(objIndex, XMFLOAT3(18.0f, 0.1f, 2.0f), XMFLOAT3(location.x, location.y + 5.0f, location.z), 0.0f, "box", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f));
     //Creates left drawbridge rope
@@ -2202,12 +2202,12 @@ void ShapesApp::createMainGate(UINT& objIndex, XMFLOAT3 location)
 
         if (i % 2 == 0)
         {
-            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 8.5f + (temp / 2), location.y + 5.0f, location.z - 1.0f), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 8.5f + (temp / 2), location.y + 5.0f, location.z - 1.0f), 0.0f, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f));
             //Adds pyramid top to pirapites
             createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 8.5f + (temp / 2), location.y + 6.0f, location.z - 1.0f), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f));
         }
         else
-            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 8.5f + (temp / 2), location.y + 5.0f, location.z - 1.0f), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+            createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 8.5f + (temp / 2), location.y + 5.0f, location.z - 1.0f), 0.0f, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f));
     }
 }
 void ShapesApp::createTowerDoors(UINT& objIndex)
@@ -2288,34 +2288,34 @@ void ShapesApp::createCastlePerimeter(UINT& objIndex)
 void ShapesApp::createCastleTowers(UINT& objIndex)
 {
     // Lower main cylinders
-    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 10.0f, 1.5f), XMFLOAT3(5.0, 0.0, 5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 10.0f, 1.5f), XMFLOAT3(-5.0, 0.0, 5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 10.0f, 1.5f), XMFLOAT3(5.0, 0.0, -5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 10.0f, 1.5f), XMFLOAT3(-5.0, 0.0, -5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 10.0f, 1.5f), XMFLOAT3(5.0, 0.0, 5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(2.0f, 2.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 10.0f, 1.5f), XMFLOAT3(-5.0, 0.0, 5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(2.0f, 2.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 10.0f, 1.5f), XMFLOAT3(5.0, 0.0, -5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(2.0f, 2.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.5f, 10.0f, 1.5f), XMFLOAT3(-5.0, 0.0, -5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(2.0f, 2.0f, 1.0f));
 
     // Uppers main cylinders
-    createShapeInWorld(objIndex, XMFLOAT3(1.75f, 5.0f, 1.75f), XMFLOAT3(5.0, 8.0, 5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(1.75f, 5.0f, 1.75f), XMFLOAT3(-5.0, 8.0, 5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(1.75f, 5.0f, 1.75f), XMFLOAT3(5.0, 8.0, -5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(1.75f, 5.0f, 1.75f), XMFLOAT3(-5.0, 8.0, -5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.75f, 5.0f, 1.75f), XMFLOAT3(5.0, 8.0, 5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(2.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.75f, 5.0f, 1.75f), XMFLOAT3(-5.0, 8.0, 5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(2.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.75f, 5.0f, 1.75f), XMFLOAT3(5.0, 8.0, -5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(2.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.75f, 5.0f, 1.75f), XMFLOAT3(-5.0, 8.0, -5.0), 0.0f, "roundcylinder", "sandbrick", XMFLOAT3(2.0f, 1.0f, 1.0f));
 
     // Cylinder breaks
-    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 0.5f, 2.0f), XMFLOAT3(5.0, 7.5, 5.0), 0.0f, "blackCylinder",  "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 0.5f, 2.0f), XMFLOAT3(-5.0, 7.5, 5.0), 0.0f, "blackCylinder", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 0.5f, 2.0f), XMFLOAT3(5.0, 7.5, -5.0), 0.0f, "blackCylinder", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 0.5f, 2.0f), XMFLOAT3(-5.0, 7.5, -5.0), 0.0f, "blackCylinder","iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 0.5f, 2.0f), XMFLOAT3(5.0, 7.5, 5.0), 0.0f, "blackCylinder",  "wroughtIron", XMFLOAT3(2.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 0.5f, 2.0f), XMFLOAT3(-5.0, 7.5, 5.0), 0.0f, "blackCylinder", "wroughtIron", XMFLOAT3(2.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 0.5f, 2.0f), XMFLOAT3(5.0, 7.5, -5.0), 0.0f, "blackCylinder", "wroughtIron", XMFLOAT3(2.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 0.5f, 2.0f), XMFLOAT3(-5.0, 7.5, -5.0), 0.0f, "blackCylinder","wroughtIron", XMFLOAT3(2.0f, 1.0f, 1.0f));
       
     // Under cone breaks
-    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 0.2f, 2.1f), XMFLOAT3(5.0, 12.8, 5.0), 0.0f, "blackCylinder",  "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 0.2f, 2.1f), XMFLOAT3(-5.0, 12.8, 5.0), 0.0f, "blackCylinder", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 0.2f, 2.1f), XMFLOAT3(5.0, 12.8, -5.0), 0.0f, "blackCylinder", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 0.2f, 2.1f), XMFLOAT3(-5.0, 12.8, -5.0), 0.0f, "blackCylinder","iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 0.2f, 2.1f), XMFLOAT3(5.0, 12.8, 5.0), 0.0f, "blackCylinder",  "wroughtIron", XMFLOAT3(2.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 0.2f, 2.1f), XMFLOAT3(-5.0, 12.8, 5.0), 0.0f, "blackCylinder", "wroughtIron", XMFLOAT3(2.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 0.2f, 2.1f), XMFLOAT3(5.0, 12.8, -5.0), 0.0f, "blackCylinder", "wroughtIron", XMFLOAT3(2.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 0.2f, 2.1f), XMFLOAT3(-5.0, 12.8, -5.0), 0.0f, "blackCylinder","wroughtIron", XMFLOAT3(2.0f, 1.0f, 1.0f));
 
     // Tower Base
-    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 1.0f, 2.1f), XMFLOAT3(5.0, 0.0, 5.0), 0.0f, "blackCylinder",  "stonebrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 1.0f, 2.1f), XMFLOAT3(-5.0, 0.0, 5.0), 0.0f, "blackCylinder", "stonebrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 1.0f, 2.1f), XMFLOAT3(5.0, 0.0, -5.0), 0.0f, "blackCylinder", "stonebrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 1.0f, 2.1f), XMFLOAT3(-5.0, 0.0, -5.0), 0.0f, "blackCylinder","stonebrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 1.0f, 2.1f), XMFLOAT3(5.0, 0.0, 5.0), 0.0f, "blackCylinder",  "stonebrick", XMFLOAT3(5.0f, 1.0f, 5.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 1.0f, 2.1f), XMFLOAT3(-5.0, 0.0, 5.0), 0.0f, "blackCylinder", "stonebrick", XMFLOAT3(5.0f, 1.0f, 5.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 1.0f, 2.1f), XMFLOAT3(5.0, 0.0, -5.0), 0.0f, "blackCylinder", "stonebrick", XMFLOAT3(5.0f, 1.0f, 5.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(2.1f, 1.0f, 2.1f), XMFLOAT3(-5.0, 0.0, -5.0), 0.0f, "blackCylinder","stonebrick", XMFLOAT3(5.0f, 1.0f, 5.0f));
 
     // Top of tower cones
     createShapeInWorld(objIndex, XMFLOAT3(2.5f, 5.0f, 2.5f), XMFLOAT3(5.0, 13.0, 5.0), 0.0f, "cone",  "shingle", XMFLOAT3(1.0f, 1.0f, 1.0f));
@@ -2333,8 +2333,8 @@ void ShapesApp::createMainCastle(UINT& objIndex)
     createShapeInWorld(objIndex, XMFLOAT3(10.0f, 10.0f, 10.0f), XMFLOAT3(0.0, 0.0, 0.0), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
 
     // Raised platforms
-    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 1.0f, 10.0f), XMFLOAT3(5.0, 10.0, 0.0), 0.0f, "box",  "woodV", XMFLOAT3(0.1f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(2.0f, 1.0f, 10.0f), XMFLOAT3(-5.0, 10.0, 0.0), 0.0f, "box", "woodV", XMFLOAT3(0.1f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.0f, 2.0f), XMFLOAT3(5.0, 10.0, 0.0), 90.0f, "box",  "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.0f, 2.0f), XMFLOAT3(-5.0, 10.0, 0.0), 90.0f, "box", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f));
     createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.0f, 2.0f), XMFLOAT3(0.0, 10.0, 5.0), 0.0f, "box",  "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f));
     createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.0f, 2.0f), XMFLOAT3(0.0, 10.0, -5.0), 0.0f, "box", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f));
 
@@ -2348,17 +2348,17 @@ void ShapesApp::createMainCastle(UINT& objIndex)
     for (int i = 0; i < 3; i++)
     {
         // Front Studs
-          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-2.0 + (i * 2), 7.5, -5.5), XMFLOAT3(-90.0f, 0.0f, 0.0f), "pyramid", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-2.0 + (i * 2), 4.0, -5.5), XMFLOAT3(-90.0f, 0.0f, 0.0f), "pyramid", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-2.0 + (i * 2), 7.5, -5.5), XMFLOAT3(-90.0f, 0.0f, 0.0f), "pyramid", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-2.0 + (i * 2), 4.0, -5.5), XMFLOAT3(-90.0f, 0.0f, 0.0f), "pyramid", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
        // Back Studs
-          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-2.0 + (i * 2), 7.5, 5.5), XMFLOAT3(90.0f, 0.0f, 0.0f), "pyramid", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-2.0 + (i * 2), 4.0, 5.5), XMFLOAT3(90.0f, 0.0f, 0.0f), "pyramid", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-2.0 + (i * 2), 7.5, 5.5), XMFLOAT3(90.0f, 0.0f, 0.0f), "pyramid", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-2.0 + (i * 2), 4.0, 5.5), XMFLOAT3(90.0f, 0.0f, 0.0f), "pyramid", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
        // Right Studs
-          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(5.5, 7.5, -2.0 + (i * 2)), XMFLOAT3(90.0f, 90.0f, 0.0f), "pyramid", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(5.5, 4.0, -2.0 + (i * 2)), XMFLOAT3(90.0f, 90.0f, 0.0f), "pyramid", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(5.5, 7.5, -2.0 + (i * 2)), XMFLOAT3(90.0f, 90.0f, 0.0f), "pyramid", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(5.5, 4.0, -2.0 + (i * 2)), XMFLOAT3(90.0f, 90.0f, 0.0f), "pyramid", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
       // Left Studs
-          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-5.5, 7.5, -2.0 + (i * 2)), XMFLOAT3(90.0f, -90.0f, 0.0f), "pyramid", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-5.5, 4.0, -2.0 + (i * 2)), XMFLOAT3(90.0f, -90.0f, 0.0f), "pyramid", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-5.5, 7.5, -2.0 + (i * 2)), XMFLOAT3(90.0f, -90.0f, 0.0f), "pyramid", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+          createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(-5.5, 4.0, -2.0 + (i * 2)), XMFLOAT3(90.0f, -90.0f, 0.0f), "pyramid", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
     }
 
     // Upper platform support wedges
@@ -2379,15 +2379,15 @@ void ShapesApp::createMainCastle(UINT& objIndex)
         createShapeInWorld(objIndex, XMFLOAT3(1.0f, 0.5f, 0.5f), XMFLOAT3(6.0, 11.5, -3.0 + (i * 2)), XMFLOAT3(0.0f, -90.0f, 0.0f), "wedge", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f));
     }
     // Top of castle ground
-    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 0.1f, 10.0f), XMFLOAT3(0.0, 10.1, 0.0), 0.0f, "box", "stonebrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 0.1f, 10.0f), XMFLOAT3(0.0, 10.1, 0.0), 0.0f, "box", "stonebrick", XMFLOAT3(2.0f, 2.0f, 1.0f));
 
     // Diamond Holders
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(1.0, 10.0, 1.0), 75.0f, "triprism",   "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(-1.0, 10.0, 1.0),-15.0f, "triprism",  "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(1.0, 10.0, -1.0), 45.0f, "triprism",  "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(-1.0, 10.0, -1.0), 15.0f, "triprism", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(1.0, 10.0, 1.0), 75.0f, "triprism",   "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(-1.0, 10.0, 1.0),-15.0f, "triprism",  "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(1.0, 10.0, -1.0), 45.0f, "triprism",  "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 2.0f, 1.0f), XMFLOAT3(-1.0, 10.0, -1.0), 15.0f, "triprism", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f));
 
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.5f, 1.0f), XMFLOAT3(0.0, 12.5, 0.0), 0.0f, "diamond", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f));
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.5f, 1.0f), XMFLOAT3(0.0, 12.5, 0.0), 0.0f, "diamond", "water", XMFLOAT3(1.0f, 1.0f, 1.0f));
 }
 
 std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> ShapesApp::GetStaticSamplers()
