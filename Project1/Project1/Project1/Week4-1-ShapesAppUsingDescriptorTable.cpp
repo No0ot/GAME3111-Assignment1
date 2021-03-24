@@ -1182,26 +1182,50 @@ void ShapesApp::BuildTreeSpritesGeometry()
         XMFLOAT2 Size;
     };
 
-    static const int flameCount = 16;
-    std::array<TreeSpriteVertex, 16> vertices;
-    for (UINT i = 0; i < flameCount; ++i)
+    static const int treeCount = 30;
+    std::array<TreeSpriteVertex, 30> vertices;
+
+    vertices[0].Pos = XMFLOAT3(-17, 3, -10);
+    vertices[1].Pos = XMFLOAT3(-17, 3.5, -5);
+    vertices[2].Pos = XMFLOAT3(-17, 4.5, -0);
+    vertices[3].Pos = XMFLOAT3(-17, 5.5, 5);
+    vertices[4].Pos = XMFLOAT3(-17, 8, 10);
+    vertices[5].Pos = XMFLOAT3(-17, 11, 15);
+    vertices[6].Pos = XMFLOAT3(-12, 11, 15);
+    vertices[7].Pos = XMFLOAT3(-7, 10.5, 15);
+    vertices[8].Pos = XMFLOAT3(-2, 9, 15);
+    vertices[9].Pos = XMFLOAT3(3, 6, 15);
+    vertices[10].Pos = XMFLOAT3(8, 5, 15);
+    vertices[11].Pos = XMFLOAT3(13, 3, 15);
+    vertices[12].Pos = XMFLOAT3(17, 2, 15);
+    vertices[13].Pos = XMFLOAT3(17, 5, 10);
+    vertices[14].Pos = XMFLOAT3(17, 6, 5);
+    vertices[15].Pos = XMFLOAT3(17, 7, 0);
+    vertices[16].Pos = XMFLOAT3(17, 7, -5);
+    vertices[17].Pos = XMFLOAT3(17, 8, -10);
+    vertices[18].Pos = XMFLOAT3(-15, 22, 45);
+    vertices[19].Pos = XMFLOAT3(-10, 24, 45);
+    vertices[20].Pos = XMFLOAT3(-15, 22, 50);
+    vertices[21].Pos = XMFLOAT3(-10, 22, 50);
+    vertices[22].Pos = XMFLOAT3(42, 13, 3);
+    vertices[23].Pos = XMFLOAT3(55, 16.5, 20);
+    vertices[24].Pos = XMFLOAT3(95, 10.5, -35);
+    vertices[25].Pos = XMFLOAT3(100, 19.5, -25);
+    vertices[26].Pos = XMFLOAT3(-10, 2.5, -25);
+    vertices[27].Pos = XMFLOAT3(10, 3.5, -35);
+    vertices[28].Pos = XMFLOAT3(-30, 2.5, -45);
+    vertices[29].Pos = XMFLOAT3(25, 6.5, -55);
+
+    for (int i = 0; i < treeCount; i++)
     {
-        float x = MathHelper::RandF(-45.0f, 45.0f);
-        float z = MathHelper::RandF(-45.0f, 45.0f);
-        float y = GetHillsHeight(x, z);
-
-        // Move tree slightly above land height.
-        y += 8.0f;
-
-        vertices[i].Pos = XMFLOAT3(x, y, z);
-        vertices[i].Size = XMFLOAT2(20.0f, 20.0f);
+        vertices[i].Size = XMFLOAT2(10, 10);
     }
-    vertices[15].Pos = XMFLOAT3(0, 6, -30);
-    vertices[15].Size = XMFLOAT2(20.0f, 20.0f);
 
-    std::array<std::uint16_t, 16> indices =
+    std::array<std::uint16_t, 30> indices =
     {
-        0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+        0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+        16,17, 18, 19, 20, 21, 22, 23, 24, 25,
+        26, 27, 28, 29
     };
 
 
@@ -1281,11 +1305,6 @@ void ShapesApp::BuildFlameSpriteGeometry()
     vertices[12].Pos = XMFLOAT3(1.5f, 11.3f, 0.0f);
 
     vertices[13].Pos = XMFLOAT3(-1.5f, 11.3f, 0.0f);
-
-
-
-   
-
 
     for (int i = 0; i < flameCount; i++)
     {
@@ -1959,22 +1978,22 @@ void ShapesApp::createBillboardInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT
 
 void ShapesApp::createBillBoards(UINT& objIndex)
 {
-    //auto treeSpritesRitem = std::make_unique<RenderItem>();
-    //XMStoreFloat4x4(&treeSpritesRitem->World, XMMatrixTranslation(10.0f, -1.5f, -30.0f));
-    //treeSpritesRitem->ObjCBIndex = objIndex++;
-    //treeSpritesRitem->Mat = mMaterials["treeSprites"].get();
-    //treeSpritesRitem->Geo = mGeometries["treeSpritesGeo"].get();
-    ////step2
-    //treeSpritesRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
-    //treeSpritesRitem->IndexCount = treeSpritesRitem->Geo->DrawArgs["points"].IndexCount;
-    //treeSpritesRitem->StartIndexLocation = treeSpritesRitem->Geo->DrawArgs["points"].StartIndexLocation;
-    //treeSpritesRitem->BaseVertexLocation = treeSpritesRitem->Geo->DrawArgs["points"].BaseVertexLocation;
+    auto treeSpritesRitem = std::make_unique<RenderItem>();
+    XMStoreFloat4x4(&treeSpritesRitem->World, XMMatrixTranslation(10.0f, -1.5f, -30.0f));
+    treeSpritesRitem->ObjCBIndex = objIndex++;
+    treeSpritesRitem->Mat = mMaterials["treeSprites"].get();
+    treeSpritesRitem->Geo = mGeometries["treeSpritesGeo"].get();
+    //step2
+    treeSpritesRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+    treeSpritesRitem->IndexCount = treeSpritesRitem->Geo->DrawArgs["points"].IndexCount;
+    treeSpritesRitem->StartIndexLocation = treeSpritesRitem->Geo->DrawArgs["points"].StartIndexLocation;
+    treeSpritesRitem->BaseVertexLocation = treeSpritesRitem->Geo->DrawArgs["points"].BaseVertexLocation;
 
-    //mRitemLayer[(int)RenderLayer::AlphaTestedTreeSprites].push_back(treeSpritesRitem.get());
-    //mAllRitems.push_back(std::move(treeSpritesRitem));
+    mRitemLayer[(int)RenderLayer::AlphaTestedTreeSprites].push_back(treeSpritesRitem.get());
+    mAllRitems.push_back(std::move(treeSpritesRitem));
 
     auto flameSpritesRitem = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&flameSpritesRitem->World, XMMatrixTranslation(0.0f, 0.f, -25.0f));
+    XMStoreFloat4x4(&flameSpritesRitem->World, XMMatrixTranslation(0.0f, 0.f, 0.0f));
     flameSpritesRitem->ObjCBIndex = objIndex++;
     flameSpritesRitem->Mat = mMaterials["flames"].get();
     flameSpritesRitem->Geo = mGeometries["flameSpritesGeo"].get();
