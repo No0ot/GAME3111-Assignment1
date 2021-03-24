@@ -2219,7 +2219,7 @@ void ShapesApp::createMainGate(UINT& objIndex, XMFLOAT3 location)
     //Creates fills in gap below pirapits at center of wall
     createShapeInWorld(objIndex, XMFLOAT3(6.0f, 1.0f, 2.0f), XMFLOAT3(location.x , location.y + 4.0f, location.z), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 0.125f, 1.0f), RenderLayer::Opaque);
     //Creats "drawbridge" 
-    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 1.0f, 5.0f), XMFLOAT3(location.x, location.y, location.z-3.5f), 0.0f, "wedge", "woodV", XMFLOAT3(2.0f, 2.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 1.0f, 5.0f), XMFLOAT3(location.x, location.y + 0.2, location.z-3.5f), 0.0f, "wedge", "woodV", XMFLOAT3(2.0f, 2.0f, 1.0f), RenderLayer::Opaque);
     //Creates thin platform "walkway" for better color variety
     createShapeInWorld(objIndex, XMFLOAT3(18.0f, 0.1f, 2.0f), XMFLOAT3(location.x, location.y + 5.0f, location.z), 0.0f, "box", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
     //Creates left drawbridge rope
