@@ -16,6 +16,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{686fac1e-6ac1-4cad-a42e-5d21b32c62c9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Models">
+      <UniqueIdentifier>{70de48f3-4788-4e74-ac2e-a5ca0773c03d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\Common\Camera.cpp">
@@ -94,5 +97,10 @@
     <FxCompile Include="Shaders\TreeSprite.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Models\Maze.txt">
+      <Filter>Models</Filter>
+    </Text>
   </ItemGroup>
 </Project>

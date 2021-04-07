@@ -114,13 +114,15 @@ private:
     void createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, XMFLOAT3 angle, std::string shapeName, std::string materialName, XMFLOAT3 texscale, RenderLayer layer);
     void createBillboardInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, float angle, std::string shapeName, std::string materialName, XMFLOAT3 texscale);
     void createTower(UINT& objIndex, XMFLOAT3 location);
-    void createWall(UINT& objIndex, XMFLOAT3 location, float rotation, int sign);
+    void createWall(UINT& objIndex, XMFLOAT3 location, float rotation,float wallSize, int sign);
     void createMainGate(UINT& objIndex, XMFLOAT3 location);
     void createCastlePerimeter(UINT& objIndex);
     void createTowerDoors(UINT& objIndex);
     void createCastleTowers(UINT& objIndex);
     void createMainCastle(UINT& objIndex);
     void createBillBoards(UINT& objIndex);
+    void FillMazeVector();
+    void CreateMaze(UINT& objIndex, int xOffset, int zOffset);
 
     void createTorch(UINT& objIndex);
 
@@ -189,6 +191,10 @@ private:
     int smoothing = 1;
     float lastSum[16] = { 0 };
     std::vector<std::queue<float>> smoothingQueue;
+
+    int mazeRows = 0;
+    int mazeColumns = 0;
+    std::vector<std::vector<int>> m_vMazeArray;
 };
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
@@ -246,6 +252,7 @@ bool ShapesApp::Initialize()
     BuildShapeGeometry();
     BuildTreeSpritesGeometry();
     BuildFlameSpriteGeometry();
+    FillMazeVector();
     BuildMaterials();
     BuildRenderItems();
     BuildFrameResources();
@@ -283,8 +290,6 @@ void ShapesApp::OnResize()
 
 void ShapesApp::Update(const GameTimer& gt)
 {
-
-
     srand((unsigned)time(NULL));
 
     for (int i = 0; i < 4; i++)
@@ -295,13 +300,10 @@ void ShapesApp::Update(const GameTimer& gt)
             lastSum[randomLight] -= smoothingQueue[randomLight].front();
             smoothingQueue[randomLight].pop();
         }
-
-            
             float newVal = rand() % 3 + minimumFlicker;
             smoothingQueue[randomLight].push(newVal);
             lastSum[randomLight] += newVal;
             mMainPassCB.Lights[randomLight].FalloffEnd = lastSum[randomLight] / (float)smoothingQueue[randomLight].size();
-        
     }
     
     /*for (int i = 1; i < 14; i++)
@@ -1278,25 +1280,25 @@ void ShapesApp::BuildFlameSpriteGeometry()
 
 
 
-    vertices[0].Pos = XMFLOAT3(4.0, 3.85, -11.2);
+    vertices[0].Pos = XMFLOAT3(4.0, 3.85, -29.7);
 
-    vertices[1].Pos = XMFLOAT3(-4.0, 3.85, -11.2);
+    vertices[1].Pos = XMFLOAT3(-4.0, 3.85, -29.7);
 
     vertices[2].Pos = XMFLOAT3(1.5, 3.85, -5.2);
 
     vertices[3].Pos = XMFLOAT3(-1.5, 3.85, -5.2);
 
-    vertices[4].Pos = XMFLOAT3(8.8f, 6.8f, -9.1);
+    vertices[4].Pos = XMFLOAT3(8.8f, 6.8f, -27.6);
 
-    vertices[5].Pos = XMFLOAT3(-8.8f, 6.8f, -9.1);
+    vertices[5].Pos = XMFLOAT3(-8.8f, 6.8f, -27.6);
 
     vertices[6].Pos = XMFLOAT3(8.8f, 6.8f, 9.1);
 
     vertices[7].Pos = XMFLOAT3(-8.8f, 6.8f, 9.1);
 
-    vertices[8].Pos = XMFLOAT3(9.25f, 7.0f, -8.65f);
+    vertices[8].Pos = XMFLOAT3(9.25f, 7.0f, -27.15f);
 
-    vertices[9].Pos = XMFLOAT3(-10.5f, 7.0f, -8.65f);
+    vertices[9].Pos = XMFLOAT3(-10.5f, 7.0f, -27.15f);
 
     vertices[10].Pos = XMFLOAT3(10.6f, 6.9f, 8.65f);
 
@@ -2007,6 +2009,29 @@ void ShapesApp::createBillBoards(UINT& objIndex)
     mAllRitems.push_back(std::move(flameSpritesRitem));
 }
 
+void ShapesApp::FillMazeVector()
+{
+    std::ifstream fin("Models/Maze.txt");
+    if (!fin)
+    {
+        MessageBox(0, L"Models/Maze.txt not found.", 0, 0);
+        return;
+    }
+    fin >> mazeColumns >> mazeRows;
+    int tempValue = 0;
+
+    for (int row = 0; row < mazeRows; row++)
+    {
+        std::vector<int> tempVec;
+        for (int col = 0; col < mazeColumns; col++)
+        {
+            fin >> tempValue;
+            tempVec.push_back(tempValue);
+        }
+        m_vMazeArray.push_back(tempVec);
+    }
+}
+
 
 
 void ShapesApp::BuildRenderItems()
@@ -2050,6 +2075,7 @@ void ShapesApp::BuildRenderItems()
 
     createMainCastle(objCBIndex);
     createTorch(objCBIndex);
+    CreateMaze(objCBIndex, -7.0, -27);
     
     //Test shape for lighting
     //createShapeInWorld(objCBIndex, XMFLOAT3(5.0f, 5.0f, 5.0f), XMFLOAT3(0.0, 10.0, -20.0), 0.0f, "box", "woodV");
@@ -2162,48 +2188,48 @@ void ShapesApp::createTower(UINT& objIndex, XMFLOAT3 location)
     }
 }
 
-void ShapesApp::createWall(UINT& objIndex, XMFLOAT3 location, float rotation, int sign)
+void ShapesApp::createWall(UINT& objIndex, XMFLOAT3 location, float rotation,float wallSize, int sign)
 {
     //Signs moves the piratits to correct location on wall depending on walls rotations
-
     //Creates gray stone foundation 
-    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), rotation, "box", "stonebrick", XMFLOAT3(10.0f, 0.8f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(wallSize, 1.0f, 2.0f), XMFLOAT3(location.x, location.y, location.z), rotation, "box", "stonebrick", XMFLOAT3(10.0f, 0.8f, 1.0f), RenderLayer::Opaque);
     //Creates main wall structure
-    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 4.0f, 2.0f), XMFLOAT3(location.x, location.y +1.0f, location.z), rotation, "box", "sandbrick", XMFLOAT3(2.5f, 0.5f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(wallSize, 4.0f, 2.0f), XMFLOAT3(location.x, location.y +1.0f, location.z), rotation, "box", "sandbrick", XMFLOAT3(2.5f, 0.5f, 1.0f), RenderLayer::Opaque);
     //Creates thin platform "walkway" for better color variety
-    createShapeInWorld(objIndex, XMFLOAT3(18.0f, 0.1f, 2.0f), XMFLOAT3(location.x, location.y + 5.0f, location.z), rotation, "box", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(wallSize, 0.1f, 2.0f), XMFLOAT3(location.x, location.y + 5.0f, location.z), rotation, "box", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
  
     //Creates pirapits for tops of walls
     if (rotation == 0.0f)
     {
-        for (int i = 0; i < 36; i++)
+        for (int i = 0; i < wallSize * 2; i++)
         {
             float temp = i;
 
             if (i % 2 == 0)
             {
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 8.5f + (temp / 2), location.y + 5.0f, location.z - 1.0f * sign), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - wallSize/2.0f + (temp / 2), location.y + 5.0f, location.z - 1.0f * sign), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f), RenderLayer::Opaque);
                 //Adds pyramid top to pirapites
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 8.5f + (temp / 2), location.y + 6.0f, location.z - 1.0f *sign), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - wallSize / 2.0f + (temp / 2), location.y + 6.0f, location.z - 1.0f *sign), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
             }
             else
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 8.5f + (temp / 2), location.y + 5.0f, location.z - 1.0f * sign), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - wallSize / 2. + (temp / 2), location.y + 5.0f, location.z - 1.0f * sign), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f), RenderLayer::Opaque);
         }
     }
     else
     {
-        for (int i = 0; i < 36; i++)
+        for (int i = 0; i < wallSize * 2; i++)
         {
             float temp = i;
 
             if (i % 2 == 0)
             {
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z - 8.5f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z -wallSize / 2.0f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f), RenderLayer::Opaque);
                 //Adds pyramid top to pirapites
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 6.0f, location.z - 8.5f + (temp / 2)), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 6.0f, location.z - wallSize / 2.0f + (temp / 2)), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
             }
             else
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z - 1.0f - 8.5f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z - 1.0f - wallSize / 2.0f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z - 1.0f - wallSize / 2.0f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f), RenderLayer::Opaque);
         }
     }
 
@@ -2245,24 +2271,24 @@ void ShapesApp::createMainGate(UINT& objIndex, XMFLOAT3 location)
 void ShapesApp::createTowerDoors(UINT& objIndex)
 {
     //Doorframes & Doors for front left tower
-    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(-10.0f, 5.0f, -8.75f), 0.0f, "torus", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(-10.0f, 5.0f, -9.0f), 0.0f, "box", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-10.1f, 5.2f, -8.7f), 0.0f, "sphere", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(-10.0f, 5.0f, -27.25f), 0.0f, "torus", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(-10.0f, 5.0f, -27.5f), 0.0f, "box", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-10.1f, 5.2f, -27.2f), 0.0f, "sphere", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
 
-    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(-8.75f, 5.0f, -10.0f), 90.0f, "torus", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(-9.0f, 5.0f, -10.0f), 90.0f, "wedge", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-8.65f, 5.2f, -9.9f), 0.0f, "sphere", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(-8.75f, 5.0f, -28.5f), 90.0f, "torus", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(-9.0f, 5.0f, -28.5f), 90.0f, "wedge", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-8.65f, 5.2f, -28.4f), 0.0f, "sphere", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
     //Doorframes & Doors for front right tower
-    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(10.0f, 5.0f, -8.75f), 0.0f, "torus", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(10.0f, 5.0f, -9.0f), 0.0f, "wedge", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(9.9f, 5.2f, -8.7f), 0.0f, "sphere", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(10.0f, 5.0f, -27.25f), 0.0f, "torus", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(10.0f, 5.0f, -27.5f), 0.0f, "wedge", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(9.9f, 5.2f, -27.2f), 0.0f, "sphere", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
 
-    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(8.75f, 5.0f, -10.0f), 90.0f, "torus", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(9.0f, 5.0f, -10.0f), 270.0f, "wedge", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(8.65f, 5.2f, -10.1f), 0.0f, "sphere", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(8.75f, 5.0f, -28.5f), 90.0f, "torus", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.25f, 0.5f), XMFLOAT3(9.0f, 5.0f, -28.5f), 270.0f, "wedge", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(8.65f, 5.2f, -28.6f), 0.0f, "sphere", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
     //Doorframes & Doors for back left tower
     createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.2f), XMFLOAT3(-10.0f, 5.0f, 8.75f), 0.0f, "torus", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
@@ -2296,23 +2322,23 @@ void ShapesApp::createTowerDoors(UINT& objIndex)
 void ShapesApp::createCastlePerimeter(UINT& objIndex)
 {
     //Creates front left tower 
-    createTower(objIndex, XMFLOAT3(-10.0f, 0.0f, -10.0f));
+    createTower(objIndex, XMFLOAT3(-10.0f, 0.0f, -28.5f));
     //Creates back left tower 
     createTower(objIndex, XMFLOAT3(-10.0f, 0.0f, 10.0f));
     //Creates front right tower 
-    createTower(objIndex, XMFLOAT3(10.0f, 0.0f, -10.0f));
+    createTower(objIndex, XMFLOAT3(10.0f, 0.0f, -28.5f));
     //Creates back right tower 
     createTower(objIndex, XMFLOAT3(10.0f, 0.0f, 10.0f));
 
     //Creates right wall
-    createWall(objIndex, XMFLOAT3(0.0f, 0.0f, 10.0f), 0.0f, -1);
+    createWall(objIndex, XMFLOAT3(0.0f, 0.0f, 10.0f), 0.0f, 18, -1);
     //Creates left wall
-    createWall(objIndex, XMFLOAT3(-10.0f, 0.0f, 0.0f), 90.f, 1);
+    createWall(objIndex, XMFLOAT3(-10.0f, 0.0f, -9.25f), 90.f,36.5, 1);
     //Creates back wall
-    createWall(objIndex, XMFLOAT3(10.0f, 0.0f, 0.0f), 90.f, -1);
+    createWall(objIndex, XMFLOAT3(10.0f, 0.0f, -9.25f), 90.f,36.5, -1);
 
     //Creates front gate
-    createMainGate(objIndex, XMFLOAT3(0.0f, 0.0f, -10.0f));
+    createMainGate(objIndex, XMFLOAT3(0.0f, 0.0f, -28.5f));
 
     //Creates doorframes/doors/doorknobs
     createTowerDoors(objIndex);
@@ -2481,7 +2507,8 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> ShapesApp::GetStaticSamplers()
 
 float ShapesApp::GetHillsHeight(float x, float z) const
 {
-    return 0.2f * (z * sinf(0.05f * x) + x * cosf(0.1f * z)) + 0.9f;
+    float val = 0.2f * (z * sinf(0.05f * x) + x * cosf(0.1f * z)) + 0.9f;
+    return val;
 }
 
 XMFLOAT3 ShapesApp::GetHillsNormal(float x, float z) const
@@ -2499,20 +2526,20 @@ XMFLOAT3 ShapesApp::GetHillsNormal(float x, float z) const
 }
 void ShapesApp::createTorch(UINT& objIndex)
 {
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(4.0, 2, -11.0), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(4.0, 2, -29.5), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-4.0, 2, -11.0), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-4.0, 2, -29.5), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
     
     int lightNumber = 2;
 
 
-    mMainPassCB.Lights[lightNumber].Position = { 4.0, 3.5, -11.5 };
+    mMainPassCB.Lights[lightNumber].Position = { 4.0, 3.5, -30.5 };
     mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
     mMainPassCB.Lights[lightNumber].FalloffStart = 1;
     mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
     lightNumber++;
 
-    mMainPassCB.Lights[lightNumber].Position = { -4.0, 3.5, -11.5};
+    mMainPassCB.Lights[lightNumber].Position = { -4.0, 3.5, -30.5};
     mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
     mMainPassCB.Lights[lightNumber].FalloffStart = 1;
     mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
@@ -2533,16 +2560,16 @@ void ShapesApp::createTorch(UINT& objIndex)
     mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
     lightNumber++;
 
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(8.75f, 5.0f, -9.1f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(8.75f, 5.0f, -27.6f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-8.75f, 5.0f, -9.1f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f),RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-8.75f, 5.0f, -27.6f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f),RenderLayer::Opaque);
 
-    mMainPassCB.Lights[lightNumber].Position = { 8.2f, 6.8f, -9.8 };
+    mMainPassCB.Lights[lightNumber].Position = { 8.2f, 6.8f, -28.3 };
     mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
     mMainPassCB.Lights[lightNumber].FalloffStart = 1;
     mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
     lightNumber++;
-    mMainPassCB.Lights[lightNumber].Position = { -8.2f, 6.8f, -9.8f };
+    mMainPassCB.Lights[lightNumber].Position = { -8.2f, 6.8f, -28.3f };
     mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
     mMainPassCB.Lights[lightNumber].FalloffStart = 1;
     mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
@@ -2563,16 +2590,16 @@ void ShapesApp::createTorch(UINT& objIndex)
     mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
     lightNumber++;
 
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(9.25f, 5.0f, -8.73f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(9.25f, 5.0f, -27.23f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-10.5f, 5.0f, -8.73f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-10.5f, 5.0f, -27.23f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
-    mMainPassCB.Lights[lightNumber].Position = { 9.25f, 7.0f, -8.0f };
+    mMainPassCB.Lights[lightNumber].Position = { 9.25f, 7.0f, -26.5f };
     mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
     mMainPassCB.Lights[lightNumber].FalloffStart = 1;
     mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
     lightNumber++;
-    mMainPassCB.Lights[lightNumber].Position = { -10.5f, 7.0f, -8.0f };
+    mMainPassCB.Lights[lightNumber].Position = { -10.5f, 7.0f, -26.5f };
     mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
     mMainPassCB.Lights[lightNumber].FalloffStart = 1;
     mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
@@ -2612,4 +2639,25 @@ void ShapesApp::createTorch(UINT& objIndex)
     //-8.75f, 5.0f, -10.0f
 }
 
+
+void ShapesApp::CreateMaze(UINT& objIndex, int xOffset, int zOffset)
+{
+    for (int row = 0; row < m_vMazeArray.size(); row++)
+    {
+        for (int col = 0; col < m_vMazeArray[row].size(); col++)
+        {
+            if (m_vMazeArray[row][col] == 1)
+            {
+                float x = col / 2.0f + xOffset;
+                float z = row / 2.0f + zOffset;
+
+                XMVECTOR tempPos = XMVectorSet(x, 0, z, 0);
+
+                float y = GetHillsHeight(col / 2 + xOffset + 10, row / 2 + zOffset - 30);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 3.0f, 0.5f), XMFLOAT3(x, 0, z), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+            }
+        }
+    }
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 10.0f, 1.0f), XMFLOAT3(-80, 0, 80), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+}
 
