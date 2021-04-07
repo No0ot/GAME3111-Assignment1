@@ -8,6 +8,7 @@
 #include "../../Common/MathHelper.h"
 #include "../../Common/UploadBuffer.h"
 #include "../../Common/GeometryGenerator.h"
+#include "../../Common/Camera.h"
 #include <time.h>
 #include "FrameResource.h"
 #include "Waves.h"
@@ -168,12 +169,13 @@ private:
     std::unique_ptr<Waves> mWaves;
 
     PassConstants mMainPassCB;
+    Camera mCamera;
 
     UINT mPassCbvOffset = 0;
 
     bool mIsWireframe = false;
 
-	XMFLOAT3 mEyePos = { 0.0f, 0.0f, 0.0f };
+	XMFLOAT3 mEyePos = { 5.0f, 5.0f, 5.0f };
 	XMFLOAT4X4 mView = MathHelper::Identity4x4();
 	XMFLOAT4X4 mProj = MathHelper::Identity4x4();
 
@@ -242,6 +244,7 @@ bool ShapesApp::Initialize()
     mCbvSrvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     mWaves = std::make_unique<Waves>(128, 128, 1.0f, 0.03f, 4.0f, 0.2f);
+    mCamera.SetPosition(0.0f, 5.0f, -40.0f);
 
     LoadTextures();
     BuildRootSignature();
@@ -285,7 +288,8 @@ void ShapesApp::OnResize()
 
     // The window resized, so update the aspect ratio and recompute the projection matrix.
     XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f*MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
-    XMStoreFloat4x4(&mProj, P);
+    mCamera.SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
+    //XMStoreFloat4x4(&mProj, P);
 }
 
 void ShapesApp::Update(const GameTimer& gt)
@@ -318,7 +322,7 @@ void ShapesApp::Update(const GameTimer& gt)
     
 
     OnKeyboardInput(gt);
-	UpdateCamera(gt);
+	//UpdateCamera(gt);
 
     // Cycle through the circular frame resource array.
     mCurrFrameResourceIndex = (mCurrFrameResourceIndex + 1) % gNumFrameResources;
@@ -444,29 +448,35 @@ void ShapesApp::OnMouseMove(WPARAM btnState, int x, int y)
 {
     if((btnState & MK_LBUTTON) != 0)
     {
+        //// Make each pixel correspond to a quarter of a degree.
+        //float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
+        //float dy = XMConvertToRadians(0.25f*static_cast<float>(y - mLastMousePos.y));
+
+        //// Update angles based on input to orbit camera around box.
+        //mTheta += dx;
+        //mPhi += dy;
+
+        //// Restrict the angle mPhi.
+        ////mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
         // Make each pixel correspond to a quarter of a degree.
-        float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
-        float dy = XMConvertToRadians(0.25f*static_cast<float>(y - mLastMousePos.y));
+        float dx = XMConvertToRadians(0.25f * static_cast<float>(x - mLastMousePos.x));
+        float dy = XMConvertToRadians(0.25f * static_cast<float>(y - mLastMousePos.y));
 
-        // Update angles based on input to orbit camera around box.
-        mTheta += dx;
-        mPhi += dy;
-
-        // Restrict the angle mPhi.
-        //mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
+        mCamera.Pitch(dy);
+        mCamera.RotateY(dx);
     }
-    else if((btnState & MK_RBUTTON) != 0)
-    {
-        // Make each pixel correspond to 0.2 unit in the scene.
-        float dx = 0.05f*static_cast<float>(x - mLastMousePos.x);
-        float dy = 0.05f*static_cast<float>(y - mLastMousePos.y);
+    //else if((btnState & MK_RBUTTON) != 0)
+    //{
+    //    // Make each pixel correspond to 0.2 unit in the scene.
+    //    float dx = 0.05f*static_cast<float>(x - mLastMousePos.x);
+    //    float dy = 0.05f*static_cast<float>(y - mLastMousePos.y);
 
-        // Update the camera radius based on input.
-        mRadius += dx - dy;
+    //    // Update the camera radius based on input.
+    //    mRadius += dx - dy;
 
-        // Restrict the radius.
-        //mRadius = MathHelper::Clamp(mRadius, 5.0f, 150.0f);
-    }
+    //    // Restrict the radius.
+    //    //mRadius = MathHelper::Clamp(mRadius, 5.0f, 150.0f);
+    //}
 
     mLastMousePos.x = x;
     mLastMousePos.y = y;
@@ -474,10 +484,26 @@ void ShapesApp::OnMouseMove(WPARAM btnState, int x, int y)
  
 void ShapesApp::OnKeyboardInput(const GameTimer& gt)
 {
+    const float dt = gt.DeltaTime();
+
     if(GetAsyncKeyState('1') & 0x8000)
         mIsWireframe = true;
     else
         mIsWireframe = false;
+
+    if (GetAsyncKeyState('W') & 0x8000) //most significant bit (MSB) is 1 when key is pressed (1000 000 000 000)
+        mCamera.Walk(10.0f * dt);
+
+    if (GetAsyncKeyState('S') & 0x8000)
+        mCamera.Walk(-10.0f * dt);
+
+    if (GetAsyncKeyState('A') & 0x8000)
+        mCamera.Strafe(-10.0f * dt);
+
+    if (GetAsyncKeyState('D') & 0x8000)
+        mCamera.Strafe(10.0f * dt);
+
+    mCamera.UpdateViewMatrix();
 }
  
 void ShapesApp::UpdateCamera(const GameTimer& gt)
@@ -485,9 +511,9 @@ void ShapesApp::UpdateCamera(const GameTimer& gt)
     XMVECTOR right = XMVectorSet(0.01f, 0.0f, 0.0f, 1.0f);
     XMVECTOR upward = XMVectorSet(0.00f, 0.01f, 0.0f, 1.0f);
 	// Convert Spherical to Cartesian coordinates.
-	mEyePos.x = mRadius*sinf(mPhi)*cosf(mTheta);
-	mEyePos.z = mRadius*sinf(mPhi)*sinf(mTheta);
-	mEyePos.y = mRadius*cosf(mPhi);
+	//mEyePos.x = mRadius*sinf(mPhi)*cosf(mTheta);
+	//mEyePos.z = mRadius*sinf(mPhi)*sinf(mTheta);
+	//mEyePos.y = mRadius*cosf(mPhi);
 
 	// Build the view matrix.
 	XMVECTOR pos = XMVectorSet(mEyePos.x, mEyePos.y, mEyePos.z, 1.0f);
@@ -576,8 +602,11 @@ void ShapesApp::UpdateMaterialCBs(const GameTimer& gt)
 
 void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
 {
-    XMMATRIX view = XMLoadFloat4x4(&mView);
-    XMMATRIX proj = XMLoadFloat4x4(&mProj);
+   /* XMMATRIX view = XMLoadFloat4x4(&mView);
+    XMMATRIX proj = XMLoadFloat4x4(&mProj);*/
+
+    XMMATRIX view = mCamera.GetView();
+    XMMATRIX proj = mCamera.GetProj();
 
     XMMATRIX viewProj = XMMatrixMultiply(view, proj);
     XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
@@ -590,7 +619,7 @@ void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
     XMStoreFloat4x4(&mMainPassCB.InvProj, XMMatrixTranspose(invProj));
     XMStoreFloat4x4(&mMainPassCB.ViewProj, XMMatrixTranspose(viewProj));
     XMStoreFloat4x4(&mMainPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
-    mMainPassCB.EyePosW = mEyePos;
+    mMainPassCB.EyePosW = mCamera.GetPosition3f();//mEyePos;
     mMainPassCB.RenderTargetSize = XMFLOAT2((float)mClientWidth, (float)mClientHeight);
     mMainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / mClientWidth, 1.0f / mClientHeight);
     mMainPassCB.NearZ = 1.0f;
@@ -2057,7 +2086,7 @@ void ShapesApp::BuildRenderItems()
 
     auto gridRitem = std::make_unique<RenderItem>();
     XMStoreFloat4x4(&gridRitem->World, XMMatrixRotationY(XMConvertToRadians(-45.0f)) * XMMatrixTranslation(10.0f, -1.5f, -30.0f));
-    XMStoreFloat4x4(&gridRitem->TexTransform, XMMatrixScaling(5.0f, 5.0f, 1.0f));
+    XMStoreFloat4x4(&gridRitem->TexTransform, XMMatrixScaling(10.0f, 10.0f, 1.0f));
     gridRitem->ObjCBIndex = objCBIndex++;
     gridRitem->Mat = mMaterials["grass"].get();
     gridRitem->Geo = mGeometries["landGeo"].get();
@@ -2654,10 +2683,10 @@ void ShapesApp::CreateMaze(UINT& objIndex, int xOffset, int zOffset)
                 XMVECTOR tempPos = XMVectorSet(x, 0, z, 0);
 
                 float y = GetHillsHeight(col / 2 + xOffset + 10, row / 2 + zOffset - 30);
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 3.0f, 0.5f), XMFLOAT3(x, 0, z), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 3.0f, 0.5f), XMFLOAT3(x, 0, z), 0.0f, "box", "grass", XMFLOAT3(0.5f, 3.0f, 1.0f), RenderLayer::Opaque);
             }
         }
     }
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 10.0f, 1.0f), XMFLOAT3(-80, 0, 80), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(15.0f, 1.0f, 20.0f), XMFLOAT3(0, -2.0f, -17.5f), 0.0f, "box", "sandbrick", XMFLOAT3(0.5f, 1.0f, 10.5f), RenderLayer::Opaque);
 }
 
