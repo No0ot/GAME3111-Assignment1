@@ -52,6 +52,8 @@ struct RenderItem
     // Primitive topology.
     D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
+    BoundingBox Bounds;
+
     // DrawIndexedInstanced parameters.
     UINT IndexCount = 0;
     UINT StartIndexLocation = 0;
@@ -94,6 +96,7 @@ private:
     void UpdateMaterialCBs(const GameTimer& gt);
 	void UpdateMainPassCB(const GameTimer& gt);
     void UpdateWaves(const GameTimer& gt);
+    void CheckCollisions();
 
     void LoadTextures();
     void BuildRootSignature();
@@ -169,6 +172,7 @@ private:
     std::unique_ptr<Waves> mWaves;
 
     PassConstants mMainPassCB;
+    BoundingBox CameraBoundingBox;
     Camera mCamera;
 
     UINT mPassCbvOffset = 0;
@@ -343,6 +347,7 @@ void ShapesApp::Update(const GameTimer& gt)
     UpdateMaterialCBs(gt);
 	UpdateMainPassCB(gt);
     UpdateWaves(gt);
+    CheckCollisions();
 }
 
 void ShapesApp::Draw(const GameTimer& gt)
@@ -492,16 +497,16 @@ void ShapesApp::OnKeyboardInput(const GameTimer& gt)
         mIsWireframe = false;
 
     if (GetAsyncKeyState('W') & 0x8000) //most significant bit (MSB) is 1 when key is pressed (1000 000 000 000)
-        mCamera.Walk(10.0f * dt);
+        mCamera.Walk(20.0f * dt);
 
     if (GetAsyncKeyState('S') & 0x8000)
-        mCamera.Walk(-10.0f * dt);
+        mCamera.Walk(-20.0f * dt);
 
     if (GetAsyncKeyState('A') & 0x8000)
-        mCamera.Strafe(-10.0f * dt);
+        mCamera.Strafe(-20.0f * dt);
 
     if (GetAsyncKeyState('D') & 0x8000)
-        mCamera.Strafe(10.0f * dt);
+        mCamera.Strafe(20.0f * dt);
 
     mCamera.UpdateViewMatrix();
 }
@@ -675,6 +680,43 @@ void ShapesApp::UpdateWaves(const GameTimer& gt)
 
     // Set the dynamic VB of the wave renderitem to the current frame VB.
     mWavesRitem->Geo->VertexBufferGPU = currWavesVB->Resource();
+}
+
+void ShapesApp::CheckCollisions()
+{
+
+    XMFLOAT3 P = mCamera.GetPosition3f();
+
+    float x = P.x;
+    float y = P.y;
+    float z = P.z;
+
+    std::string thestring = std::to_string(x) + " " + std::to_string(y) + " " + std::to_string(z);
+    std::string thestring2 = "COLLISION";
+
+    ::OutputDebugStringA((char*)thestring.c_str());
+
+    for (auto& e : mAllRitems)
+    {
+        float sizex = e->Bounds.Extents.x - e->Bounds.Center.x;
+        float sizey = e->Bounds.Extents.y - e->Bounds.Center.y;
+        float sizez = e->Bounds.Extents.z - e->Bounds.Center.z;
+
+        float diffx = P.x - e->Bounds.Center.x;
+        float diffy = P.y - e->Bounds.Center.y;
+        float diffz = P.z - e->Bounds.Center.z;
+
+
+        float distancetoCam = sqrtf((diffx * diffx) + (diffy * diffy) + (diffz * diffz));
+
+        float distancetoedge = sqrtf((sizex * sizex) + (sizey * sizey) + (sizez * sizez));
+
+        if ( distancetoCam < distancetoedge )
+        {
+            ::OutputDebugStringA((char*)thestring2.c_str());
+        }
+    }
+
 }
 
 void ShapesApp::LoadTextures()
@@ -1382,6 +1424,7 @@ void ShapesApp::BuildFlameSpriteGeometry()
 
     mGeometries["flameSpritesGeo"] = std::move(geo);
 }
+
 void ShapesApp::BuildShapeGeometry()
 {
     GeometryGenerator geoGen;
@@ -1401,7 +1444,11 @@ void ShapesApp::BuildShapeGeometry()
     GeometryGenerator::MeshData roundcylinder = geoGen.CreateCylinder(1.0f, 1.0f, 1.0f, 20, 20);
     GeometryGenerator::MeshData torchHandle = geoGen.CreateCone(0.25f, 0.75f, 20, 20);
     
-    
+    XMFLOAT3 vMinf3(+MathHelper::Infinity, +MathHelper::Infinity, +MathHelper::Infinity);
+    XMFLOAT3 vMaxf3(-MathHelper::Infinity, -MathHelper::Infinity, -MathHelper::Infinity);
+
+    XMVECTOR vMin = XMLoadFloat3(&vMinf3);
+    XMVECTOR vMax = XMLoadFloat3(&vMaxf3);
 
 
 	//
@@ -1553,6 +1600,11 @@ void ShapesApp::BuildShapeGeometry()
         //vertices[k].Color = XMFLOAT4(DirectX::Colors::Wheat);
         vertices[k].Normal = box.Vertices[i].Normal;
         vertices[k].TexC = box.Vertices[i].TexC;
+
+        XMVECTOR P = XMLoadFloat3(&vertices[i].Pos);
+
+        vMin = XMVectorMin(vMin, P);
+        vMax = XMVectorMax(vMax, P);
 	}
 
 	for(size_t i = 0; i < grid.Vertices.size(); ++i, ++k)
@@ -1700,6 +1752,12 @@ void ShapesApp::BuildShapeGeometry()
 	geo->VertexBufferByteSize = vbByteSize;
 	geo->IndexFormat = DXGI_FORMAT_R16_UINT;
 	geo->IndexBufferByteSize = ibByteSize;
+
+    BoundingBox bounds;
+    XMStoreFloat3(&bounds.Center, 0.5f * (vMin + vMax));
+    XMStoreFloat3(&bounds.Extents, 0.5f * (vMax - vMin));
+
+    boxSubmesh.Bounds = bounds;
 
 	geo->DrawArgs["box"] = boxSubmesh;
 	geo->DrawArgs["grid"] = gridSubmesh;
@@ -1965,6 +2023,11 @@ void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 tr
     temp->IndexCount = temp->Geo->DrawArgs[shapeName].IndexCount;
     temp->StartIndexLocation = temp->Geo->DrawArgs[shapeName].StartIndexLocation;
     temp->BaseVertexLocation = temp->Geo->DrawArgs[shapeName].BaseVertexLocation;
+    if (shapeName == "box")
+    {
+        temp->Bounds = temp->Geo->DrawArgs[shapeName].Bounds;
+    }
+
     mRitemLayer[(int)layer].push_back(temp.get());
     mAllRitems.push_back(std::move(temp));
 }
@@ -1984,9 +2047,14 @@ void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 tr
     temp->IndexCount = temp->Geo->DrawArgs[shapeName].IndexCount;
     temp->StartIndexLocation = temp->Geo->DrawArgs[shapeName].StartIndexLocation;
     temp->BaseVertexLocation = temp->Geo->DrawArgs[shapeName].BaseVertexLocation;
+    if (shapeName == "box")
+    {
+        temp->Bounds = temp->Geo->DrawArgs[shapeName].Bounds;
+    }
     mRitemLayer[(int)layer].push_back(temp.get());
     mAllRitems.push_back(std::move(temp));
 }
+
 void ShapesApp::createBillboardInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, float angle, std::string shapeName, std::string materialName, XMFLOAT3 texscale)
 {
     auto flameSpritesRitem = std::make_unique<RenderItem>();
