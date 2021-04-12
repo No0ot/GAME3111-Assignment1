@@ -497,16 +497,16 @@ void ShapesApp::OnKeyboardInput(const GameTimer& gt)
         mIsWireframe = false;
 
     if (GetAsyncKeyState('W') & 0x8000) //most significant bit (MSB) is 1 when key is pressed (1000 000 000 000)
-        mCamera.Walk(10.0f * dt);
+        mCamera.Walk(30.0f * dt);
 
     if (GetAsyncKeyState('S') & 0x8000)
-        mCamera.Walk(-10.0f * dt);
+        mCamera.Walk(-30.0f * dt);
 
     if (GetAsyncKeyState('A') & 0x8000)
-        mCamera.Strafe(-10.0f * dt);
+        mCamera.Strafe(-30.0f * dt);
 
     if (GetAsyncKeyState('D') & 0x8000)
-        mCamera.Strafe(10.0f * dt);
+        mCamera.Strafe(30.0f * dt);
 
     mCamera.UpdateViewMatrix();
 }
@@ -839,6 +839,13 @@ void ShapesApp::LoadTextures()
         mCommandList.Get(), crystalTex->Filename.c_str(),
         crystalTex->Resource, crystalTex->UploadHeap));
 
+    auto hedgeTex = std::make_unique<Texture>();
+    hedgeTex->Name = "hedgeTex";
+    hedgeTex->Filename = L"../../Textures/hedge.dds";
+    ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+        mCommandList.Get(), hedgeTex->Filename.c_str(),
+        hedgeTex->Resource, hedgeTex->UploadHeap));
+
     auto flameTex = std::make_unique<Texture>();
     flameTex->Name = "flameTex";
     flameTex->Filename = L"../../Textures/FlameResize.dds";
@@ -853,6 +860,7 @@ void ShapesApp::LoadTextures()
         mCommandList.Get(), treeArrayTex->Filename.c_str(),
         treeArrayTex->Resource, treeArrayTex->UploadHeap));
 
+
     mTextures[grassTex->Name] = std::move(grassTex);
     mTextures[sandbrickTex->Name] = std::move(sandbrickTex);
     mTextures[ironTex->Name] = std::move(ironTex);
@@ -863,6 +871,7 @@ void ShapesApp::LoadTextures()
     mTextures[waterTex->Name] = std::move(waterTex);
     mTextures[wroughtIronTex->Name] = std::move(wroughtIronTex);
     mTextures[crystalTex->Name] = std::move(crystalTex);
+    mTextures[hedgeTex->Name] = std::move(hedgeTex);
     mTextures[flameTex->Name] = std::move(flameTex);
     mTextures[treeArrayTex->Name] = std::move(treeArrayTex);
 }
@@ -894,7 +903,7 @@ void ShapesApp::BuildDescriptorHeaps()
     // Create the SRV heap.
     //
     D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-    srvHeapDesc.NumDescriptors = 12;
+    srvHeapDesc.NumDescriptors = 13;
     srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
@@ -916,6 +925,7 @@ void ShapesApp::BuildDescriptorHeaps()
     auto crystalTex = mTextures["crystalTex"]->Resource;
     auto flameTex = mTextures["flameTex"]->Resource;
     auto treeArrayTex = mTextures["treeArrayTex"]->Resource;
+    auto hedgeTex = mTextures["hedgeTex"]->Resource;
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -979,6 +989,12 @@ void ShapesApp::BuildDescriptorHeaps()
 
    srvDesc.Format = crystalTex->GetDesc().Format;
    md3dDevice->CreateShaderResourceView(crystalTex.Get(), &srvDesc, hDescriptor);
+
+   //// next descriptor
+   hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+
+   srvDesc.Format = hedgeTex->GetDesc().Format;
+   md3dDevice->CreateShaderResourceView(hedgeTex.Get(), &srvDesc, hDescriptor);
 
     // next descriptor
     hDescriptor.Offset(1, mCbvSrvDescriptorSize);
@@ -1908,7 +1924,7 @@ void ShapesApp::BuildMaterials()
     water->MatCBIndex = 7;
     water->DiffuseSrvHeapIndex = 7;
     //step 6: what happens if you change the alpha to 1.0? 100% water and no blending?
-    water->DiffuseAlbedo = XMFLOAT4(0.8f, 0.8f, 0.8f, 0.6f);
+    water->DiffuseAlbedo = XMFLOAT4(0.5f, 0.8f, 0.8f, 0.2f);
     water->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
     water->Roughness = 0.0f;
 
@@ -1929,10 +1945,18 @@ void ShapesApp::BuildMaterials()
    crystal->FresnelR0 = XMFLOAT3(0.5f, 0.5f, 0.5f);
    crystal->Roughness = 0.0f;
 
+    auto hedge = std::make_unique<Material>();
+    hedge->Name = "hedge";
+    hedge->MatCBIndex = 10;
+    hedge->DiffuseSrvHeapIndex = 10;
+    hedge->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+    hedge->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+    hedge->Roughness = 0.125f;
+
     auto flames = std::make_unique<Material>();
     flames->Name = "flames";
-    flames->MatCBIndex = 10;
-    flames->DiffuseSrvHeapIndex = 10;
+    flames->MatCBIndex = 11;
+    flames->DiffuseSrvHeapIndex = 11;
     //step 6: what happens if you change the alpha to 1.0? 100% water and no blending?
     flames->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.6f);
     flames->FresnelR0 = XMFLOAT3(0.3f, 0.3f, 0.3f);
@@ -1940,11 +1964,12 @@ void ShapesApp::BuildMaterials()
 
     auto treeSprites = std::make_unique<Material>();
     treeSprites->Name = "treeSprites";
-    treeSprites->MatCBIndex = 11;
-    treeSprites->DiffuseSrvHeapIndex = 11;
+    treeSprites->MatCBIndex = 12;
+    treeSprites->DiffuseSrvHeapIndex = 12;
     treeSprites->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     treeSprites->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
     treeSprites->Roughness = 0.125f;
+
 
 
     mMaterials["grass"] = std::move(grass);
@@ -1957,6 +1982,7 @@ void ShapesApp::BuildMaterials()
     mMaterials["water"] = std::move(water);
     mMaterials["wroughtIron"] = std::move(wroughtIron);
     mMaterials["crystal"] = std::move(crystal);
+    mMaterials["hedge"] = std::move(hedge);
     mMaterials["flames"] = std::move(flames);
     mMaterials["treeSprites"] = std::move(treeSprites);
 }
@@ -1965,7 +1991,7 @@ void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 tr
 {
     auto temp = std::make_unique<RenderItem>();
     XMStoreFloat4x4(&temp->World, XMMatrixScaling(scaling.x * CollisionScale, scaling.y * CollisionScale, scaling.z * CollisionScale) * XMMatrixRotationY(XMConvertToRadians(angle)) * XMMatrixTranslation(translation.x * CollisionScale, translation.y * CollisionScale + (0.5*scaling.y* CollisionScale), translation.z * CollisionScale));
-    XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(texscale.x * CollisionScale, texscale.y * CollisionScale, texscale.z * CollisionScale));
+    XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(texscale.x, texscale.y, texscale.z));
 
     temp->ObjCBIndex = objIndex++;
     temp->Geo = mGeometries["shapeGeo"].get();
@@ -1989,7 +2015,7 @@ void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 tr
     auto temp = std::make_unique<RenderItem>();
     XMStoreFloat4x4(&temp->World, XMMatrixScaling(scaling.x * CollisionScale, scaling.y * CollisionScale, scaling.z * CollisionScale) * XMMatrixRotationRollPitchYaw(XMConvertToRadians(angle.x),
         XMConvertToRadians(angle.y), XMConvertToRadians(angle.z))* XMMatrixTranslation(translation.x * CollisionScale, translation.y* CollisionScale + (0.5 * scaling.y* CollisionScale), translation.z* CollisionScale));
-    XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(texscale.x * CollisionScale, texscale.y * CollisionScale, texscale.z * CollisionScale));
+    XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(texscale.x, texscale.y, texscale.z));
 
     temp->ObjCBIndex = objIndex++;
     temp->Geo = mGeometries["shapeGeo"].get();
@@ -2087,7 +2113,7 @@ void ShapesApp::BuildRenderItems()
 	UINT objCBIndex = 0;
 
     auto wavesRitem = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&wavesRitem->World, XMMatrixScaling(1.5f * CollisionScale, 1.0f * CollisionScale, 1.5f * CollisionScale) * XMMatrixRotationY(XMConvertToRadians(-45.0f)) * XMMatrixTranslation(10.0f * CollisionScale, -5.5f * CollisionScale, -30.0f * CollisionScale));
+    XMStoreFloat4x4(&wavesRitem->World, XMMatrixScaling(0.5f * CollisionScale, 0.5f * CollisionScale, 0.5f * CollisionScale) * XMMatrixRotationY(XMConvertToRadians(-45.0f)) * XMMatrixTranslation(10.0f * CollisionScale, -1.0f * CollisionScale, -30.0f * CollisionScale));
     XMStoreFloat4x4(&wavesRitem->TexTransform, XMMatrixScaling(5.0f * CollisionScale, 5.0f * CollisionScale, 1.0f * CollisionScale));
     wavesRitem->ObjCBIndex = objCBIndex++;
     wavesRitem->Mat = mMaterials["water"].get();
@@ -2104,7 +2130,7 @@ void ShapesApp::BuildRenderItems()
     //step5
 
     auto gridRitem = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&gridRitem->World, XMMatrixScaling(1.0f * CollisionScale, 1.0f * CollisionScale, 1.0f * CollisionScale)* XMMatrixRotationY(XMConvertToRadians(-45.0f)) * XMMatrixTranslation(10.0f * CollisionScale, -1.5f * CollisionScale, -30.0f * CollisionScale));
+    XMStoreFloat4x4(&gridRitem->World, XMMatrixScaling(0.5f * CollisionScale, 0.5f * CollisionScale, 0.5f * CollisionScale)* XMMatrixRotationY(XMConvertToRadians(0.0f)) * XMMatrixTranslation(5.0f * CollisionScale, -0.5f * CollisionScale, -5.0f * CollisionScale));
     XMStoreFloat4x4(&gridRitem->TexTransform, XMMatrixScaling(10.0f * CollisionScale, 10.0f * CollisionScale, 1.0f * CollisionScale));
     gridRitem->ObjCBIndex = objCBIndex++;
     gridRitem->Mat = mMaterials["grass"].get();
@@ -2126,7 +2152,7 @@ void ShapesApp::BuildRenderItems()
     CreateMaze(objCBIndex, -7.0, -27);
     
     //Test shape for lighting
-    createShapeInWorld(objCBIndex, XMFLOAT3(3.0f, 3.0f, 3.0f), XMFLOAT3(0, 0.0f, -35.0f), 0.0f, "box", "sandbrick", XMFLOAT3(0.5f, 1.0f, 10.5f), RenderLayer::Opaque);
+    //createShapeInWorld(objCBIndex, XMFLOAT3(3.0f, 3.0f, 3.0f), XMFLOAT3(0, 0.0f, -35.0f), 0.0f, "box", "sandbrick", XMFLOAT3(0.5f, 1.0f, 10.5f), RenderLayer::Opaque);
     //createShapeInWorld(objCBIndex, XMFLOAT3(5.0f, 5.0f, 5.0f), XMFLOAT3(0.0, 10.0, -20.0), 0.0f, "box", "woodV");
 
 }
@@ -2362,10 +2388,10 @@ void ShapesApp::createTowerDoors(UINT& objIndex)
 
     // Castle Door
     createShapeInWorld(objIndex, XMFLOAT3(1.5f, 2.0f, 0.2f), XMFLOAT3(0.0f, -1.0f, -5.1f), 0.0f, "torus", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
-    createShapeInWorld(objIndex, XMFLOAT3(2.5f, 1.5f, 0.5f), XMFLOAT3(0.0f, 0.0f, -4.8f), 180.0f, "wedge", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
-    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.5f, 0.2f, -5.1f), 0.0f, "sphere", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(2.5f, 1.5f, 0.5f), XMFLOAT3(0.0f,  0.0f, -4.8f), 180.0f, "wedge", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.5f,  0.2f, -5.1f), 0.0f, "sphere", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-0.5f, 0.2f, -5.1f), 0.0f, "sphere", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
-    createShapeInWorld(objIndex, XMFLOAT3(0.05f, 1.5f, 0.05f), XMFLOAT3(0.0f, 0.0f, -5.1f), 0.0f, "blackCylinder", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(0.05f, 1.5f, 0.05f), XMFLOAT3(0.0f,0.0f, -5.1f), 0.0f, "blackCylinder", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 }
 
 void ShapesApp::createCastlePerimeter(UINT& objIndex)
@@ -2556,7 +2582,7 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> ShapesApp::GetStaticSamplers()
 
 float ShapesApp::GetHillsHeight(float x, float z) const
 {
-    float val = 0.2f * (z * sinf(0.05f * x) + x * cosf(0.1f * z)) + 0.9f;
+    float val = 0.05f * (z * sinf(0.01f * x) + x * cosf(0.05f * z)) + 1.2f;
     return val;
 }
 
@@ -2703,10 +2729,10 @@ void ShapesApp::CreateMaze(UINT& objIndex, int xOffset, int zOffset)
                 XMVECTOR tempPos = XMVectorSet(x, 0, z, 0);
 
                 float y = GetHillsHeight(col / 2 + xOffset + 10, row / 2 + zOffset - 30);
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 3.0f, 0.5f), XMFLOAT3(x, 0, z), 0.0f, "box", "grass", XMFLOAT3(0.5f, 3.0f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 3.0f, 0.5f), XMFLOAT3(x, 0, z), 0.0f, "box", "hedge", XMFLOAT3(0.1f, 0.5f, 1.0f), RenderLayer::Opaque);
             }
         }
     }
-    createShapeInWorld(objIndex, XMFLOAT3(15.0f, 1.0f, 20.0f), XMFLOAT3(0, -2.0f, -17.5f), 0.0f, "box", "sandbrick", XMFLOAT3(0.5f, 1.0f, 10.5f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(15.0f, 1.0f, 20.0f), XMFLOAT3(0, -0.0f, -17.5f), 0.0f, "box", "grass", XMFLOAT3(2.0f, 4.0f, 10.5f), RenderLayer::Opaque);
 }
 
