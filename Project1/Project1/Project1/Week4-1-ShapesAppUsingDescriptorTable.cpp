@@ -497,38 +497,29 @@ void ShapesApp::OnKeyboardInput(const GameTimer& gt)
         mIsWireframe = false;
 
     if (GetAsyncKeyState('W') & 0x8000) //most significant bit (MSB) is 1 when key is pressed (1000 000 000 000)
-        mCamera.Walk(20.0f * dt);
+        mCamera.Walk(10.0f * dt);
 
     if (GetAsyncKeyState('S') & 0x8000)
-        mCamera.Walk(-20.0f * dt);
+        mCamera.Walk(-10.0f * dt);
 
     if (GetAsyncKeyState('A') & 0x8000)
-        mCamera.Strafe(-20.0f * dt);
+        mCamera.Strafe(-10.0f * dt);
 
     if (GetAsyncKeyState('D') & 0x8000)
-        mCamera.Strafe(20.0f * dt);
+        mCamera.Strafe(10.0f * dt);
 
     mCamera.UpdateViewMatrix();
 }
  
 void ShapesApp::UpdateCamera(const GameTimer& gt)
 {
-    XMVECTOR right = XMVectorSet(0.01f, 0.0f, 0.0f, 1.0f);
-    XMVECTOR upward = XMVectorSet(0.00f, 0.01f, 0.0f, 1.0f);
-	// Convert Spherical to Cartesian coordinates.
-	//mEyePos.x = mRadius*sinf(mPhi)*cosf(mTheta);
-	//mEyePos.z = mRadius*sinf(mPhi)*sinf(mTheta);
-	//mEyePos.y = mRadius*cosf(mPhi);
+    XMFLOAT3 vMinf3(+MathHelper::Infinity, +MathHelper::Infinity, +MathHelper::Infinity);
+    XMFLOAT3 vMaxf3(-MathHelper::Infinity, -MathHelper::Infinity, -MathHelper::Infinity);
 
-	// Build the view matrix.
-	XMVECTOR pos = XMVectorSet(mEyePos.x, mEyePos.y, mEyePos.z, 1.0f);
-	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+    XMVECTOR vMin = XMLoadFloat3(&vMinf3);
+    XMVECTOR vMax = XMLoadFloat3(&vMaxf3);
 
-	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-    //Move Right and Left
 
-    
-	XMStoreFloat4x4(&mView, view);
 }
 
 void ShapesApp::AnimateMaterials(const GameTimer& gt)
@@ -691,30 +682,76 @@ void ShapesApp::CheckCollisions()
     float y = P.y;
     float z = P.z;
 
+    XMFLOAT3 faces[] = 
+    {
+        XMFLOAT3(-1.0f,0.0f,0.0f),
+        XMFLOAT3(1.0f,0.0f,0.0f),
+        XMFLOAT3(0.0f,-1.0f,0.0f),
+        XMFLOAT3(0.0f,1.0f,0.0f),
+        XMFLOAT3(0.0f,0.0f,1.0f),
+        XMFLOAT3(0.0f,0.0f,-1.0f)
+    };
+
+
     std::string thestring = std::to_string(x) + " " + std::to_string(y) + " " + std::to_string(z);
     std::string thestring2 = "COLLISION";
 
-    ::OutputDebugStringA((char*)thestring.c_str());
+    //::OutputDebugStringA((char*)thestring.c_str());
 
     for (auto& e : mAllRitems)
     {
-        float sizex = e->Bounds.Extents.x - e->Bounds.Center.x;
-        float sizey = e->Bounds.Extents.y - e->Bounds.Center.y;
-        float sizez = e->Bounds.Extents.z - e->Bounds.Center.z;
+        float posx = e->World._41;
+        float posy = e->World._42;
+        float posz = e->World._43;
 
-        float diffx = P.x - e->Bounds.Center.x;
-        float diffy = P.y - e->Bounds.Center.y;
-        float diffz = P.z - e->Bounds.Center.z;
+        float exx = e->World._11;
+        float exy = e->World._22;
+        float exz = e->World._33;
 
+        float minX = e->World._41 - e->World._11 / 2.0f;
+        float minY = e->World._42 - e->World._22 / 2.0f;
+        float minZ = e->World._43 - e->World._33 / 2.0f;
 
-        float distancetoCam = sqrtf((diffx * diffx) + (diffy * diffy) + (diffz * diffz));
+        float maxX = e->World._41 + e->World._11 / 2.0f;
+        float maxY = e->World._42 + e->World._22 / 2.0f;
+        float maxZ = e->World._43 + e->World._33 / 2.0f;
 
-        float distancetoedge = sqrtf((sizex * sizex) + (sizey * sizey) + (sizez * sizez));
-
-        if ( distancetoCam < distancetoedge )
+        if ( (P.x >= minX && P.x <= maxX) && (P.y >= minY && P.y <= maxY) && (P.z >= minZ && P.z <= maxZ))
         {
+            float distances[] = {
+                (P.x - minX),
+                (maxX - P.x),
+                (P.y - minY),
+                (maxY - P.y),
+                (maxZ - P.z),
+                (P.z - minZ)
+            };
+
+            float penetration = MathHelper::Infinity;
+            XMFLOAT3 face = XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+            for (int i = 0; i < 6; i++)
+            {
+                if (distances[i] < penetration)
+                {
+                    // determine the penetration distance
+                    penetration = distances[i];
+                    face = faces[i];
+                }
+            }
+
+            XMFLOAT3 newposition; // = mCamera.GetPosition3f() + XMFLOAT3(face.x * penetration, face.y * penetration, face.z * penetration);
+
+            newposition.x = mCamera.GetPosition3f().x + face.x * penetration;
+            newposition.y = mCamera.GetPosition3f().y + face.y * penetration;
+            newposition.z = mCamera.GetPosition3f().z + face.z * penetration;
+
+
+            mCamera.SetPosition(newposition);
+
             ::OutputDebugStringA((char*)thestring2.c_str());
         }
+       
     }
 
 }
