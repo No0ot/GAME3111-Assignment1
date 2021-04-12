@@ -16,7 +16,7 @@
 #include <queue>
 #include <vector>
 
-#define ActiveLights = 4
+#define CollisionScale 3
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -308,7 +308,7 @@ void ShapesApp::Update(const GameTimer& gt)
             lastSum[randomLight] -= smoothingQueue[randomLight].front();
             smoothingQueue[randomLight].pop();
         }
-            float newVal = rand() % 3 + minimumFlicker;
+            float newVal = rand() % 3 * CollisionScale + minimumFlicker * CollisionScale;
             smoothingQueue[randomLight].push(newVal);
             lastSum[randomLight] += newVal;
             mMainPassCB.Lights[randomLight].FalloffEnd = lastSum[randomLight] / (float)smoothingQueue[randomLight].size();
@@ -678,9 +678,17 @@ void ShapesApp::CheckCollisions()
 
     XMFLOAT3 P = mCamera.GetPosition3f();
 
+
     float x = P.x;
     float y = P.y;
     float z = P.z;
+    float CameraExtents = 2.5f / 2.0f;
+    float pMinX = P.x - CameraExtents;
+    float pMinY = P.y - CameraExtents;
+    float pMinZ = P.z - CameraExtents;
+    float pMaxX = P.x + CameraExtents;
+    float pMaxY = P.y + CameraExtents;
+    float pMaxZ = P.z + CameraExtents;
 
     XMFLOAT3 faces[] = 
     {
@@ -716,15 +724,18 @@ void ShapesApp::CheckCollisions()
         float maxY = e->World._42 + e->World._22 / 2.0f;
         float maxZ = e->World._43 + e->World._33 / 2.0f;
 
-        if ( (P.x >= minX && P.x <= maxX) && (P.y >= minY && P.y <= maxY) && (P.z >= minZ && P.z <= maxZ))
+        if((pMinX <= maxX && pMaxX >= minX) &&
+            (pMinY <= maxY && pMaxY >= minY) &&
+            (pMinZ <= maxZ && pMaxZ >= minZ))
+        //if ( (P.x >= minX && P.x <= maxX) && (P.y >= minY && P.y <= maxY) && (P.z >= minZ && P.z <= maxZ))
         {
             float distances[] = {
-                (P.x - minX),
-                (maxX - P.x),
-                (P.y - minY),
-                (maxY - P.y),
-                (maxZ - P.z),
-                (P.z - minZ)
+                (pMaxX - minX),
+                (maxX - pMinX),
+                (pMaxY - minY),
+                (maxY - pMinY),
+                (maxZ - pMinZ),
+                (pMaxZ - minZ)
             };
 
             float penetration = MathHelper::Infinity;
@@ -996,107 +1007,10 @@ void ShapesApp::BuildDescriptorHeaps()
 
 }
 
-//assuming we have n renter items, we can populate the CBV heap with the following code where descriptors 0 to n-
-//1 contain the object CBVs for the 0th frame resource, descriptors n to 2n−1 contains the
-//object CBVs for 1st frame resource, descriptors 2n to 3n−1 contain the objects CBVs for
-//the 2nd frame resource, and descriptors 3n, 3n + 1, and 3n + 2 contain the pass CBVs for the
-//0th, 1st, and 2nd frame resource
-//void ShapesApp::BuildConstantBufferViews()
-//{
-//    UINT objCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
-//
-//    UINT objCount = (UINT)mOpaqueRitems.size();
-//
-//    // Need a CBV descriptor for each object for each frame resource.
-//    for(int frameIndex = 0; frameIndex < gNumFrameResources; ++frameIndex)
-//    {
-//        auto objectCB = mFrameResources[frameIndex]->ObjectCB->Resource();
-//        for(UINT i = 0; i < objCount; ++i)
-//        {
-//            D3D12_GPU_VIRTUAL_ADDRESS cbAddress = objectCB->GetGPUVirtualAddress();
-//
-//            // Offset to the ith object constant buffer in the buffer.
-//            cbAddress += i*objCBByteSize;
-//
-//            // Offset to the object cbv in the descriptor heap.
-//            int heapIndex = frameIndex*objCount + i;
-//
-//			//we can get a handle to the first descriptor in a heap with the ID3D12DescriptorHeap::GetCPUDescriptorHandleForHeapStart
-//            auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mCbvHeap->GetCPUDescriptorHandleForHeapStart());
-//
-//			//our heap has more than one descriptor,we need to know the size to increment in the heap to get to the next descriptor
-//			//This is hardware specific, so we have to query this information from the device, and it depends on
-//			//the heap type.Recall that our D3DApp class caches this information: 	mCbvSrvUavDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-//            handle.Offset(heapIndex, mCbvSrvUavDescriptorSize);
-//
-//            D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-//            cbvDesc.BufferLocation = cbAddress;
-//            cbvDesc.SizeInBytes = objCBByteSize;
-//
-//            md3dDevice->CreateConstantBufferView(&cbvDesc, handle);
-//        }
-//    }
-//
-//    UINT passCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(PassConstants));
-//
-//    // Last three descriptors are the pass CBVs for each frame resource.
-//    for(int frameIndex = 0; frameIndex < gNumFrameResources; ++frameIndex)
-//    {
-//        auto passCB = mFrameResources[frameIndex]->PassCB->Resource();
-//        D3D12_GPU_VIRTUAL_ADDRESS cbAddress = passCB->GetGPUVirtualAddress();
-//
-//        // Offset to the pass cbv in the descriptor heap.
-//        int heapIndex = mPassCbvOffset + frameIndex;
-//        auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mCbvHeap->GetCPUDescriptorHandleForHeapStart());
-//        handle.Offset(heapIndex, mCbvSrvUavDescriptorSize);
-//
-//        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-//        cbvDesc.BufferLocation = cbAddress;
-//        cbvDesc.SizeInBytes = passCBByteSize;
-//        
-//        md3dDevice->CreateConstantBufferView(&cbvDesc, handle);
-//    }
-//}
-
 //A root signature defines what resources need to be bound to the pipeline before issuing a draw call and
 //how those resources get mapped to shader input registers. there is a limit of 64 DWORDs that can be put in a root signature.
 void ShapesApp::BuildRootSignature()
 {
-    //CD3DX12_DESCRIPTOR_RANGE cbvTable0;
-    //cbvTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-    //
-    //CD3DX12_DESCRIPTOR_RANGE cbvTable1;
-    //cbvTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
-    //
-	//// Root parameter can be a table, root descriptor or root constants.
-	//CD3DX12_ROOT_PARAMETER slotRootParameter[2];
-    //
-	//// Create root CBVs.
-    //slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable0);
-    //slotRootParameter[1].InitAsDescriptorTable(1, &cbvTable1);
-    //
-	//// A root signature is an array of root parameters.
-	//CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(2, slotRootParameter, 0, nullptr, 
-    //    D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
-    //
-	//// create a root signature with a single slot which points to a descriptor range consisting of a single constant buffer
-	//ComPtr<ID3DBlob> serializedRootSig = nullptr;
-	//ComPtr<ID3DBlob> errorBlob = nullptr;
-	//HRESULT hr = D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1,
-	//	serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf());
-    //
-	//if(errorBlob != nullptr)
-	//{
-	//	::OutputDebugStringA((char*)errorBlob->GetBufferPointer());
-	//}
-	//ThrowIfFailed(hr);
-    //
-	//ThrowIfFailed(md3dDevice->CreateRootSignature(
-	//	0,
-	//	serializedRootSig->GetBufferPointer(),
-	//	serializedRootSig->GetBufferSize(),
-	//	IID_PPV_ARGS(mRootSignature.GetAddressOf())));
-
     CD3DX12_DESCRIPTOR_RANGE texTable;
     texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 
@@ -1388,37 +1302,37 @@ void ShapesApp::BuildFlameSpriteGeometry()
 
 
 
-    vertices[0].Pos = XMFLOAT3(4.0, 3.85, -29.7);
+    vertices[0].Pos = XMFLOAT3(4.0 * CollisionScale, 3.85 * CollisionScale, -29.7 * CollisionScale);
 
-    vertices[1].Pos = XMFLOAT3(-4.0, 3.85, -29.7);
+    vertices[1].Pos = XMFLOAT3(-4.0 * CollisionScale, 3.85 * CollisionScale, -29.7 * CollisionScale);
 
-    vertices[2].Pos = XMFLOAT3(1.5, 3.85, -5.2);
+    vertices[2].Pos = XMFLOAT3(1.5 * CollisionScale, 3.85 * CollisionScale, -5.2 * CollisionScale);
 
-    vertices[3].Pos = XMFLOAT3(-1.5, 3.85, -5.2);
+    vertices[3].Pos = XMFLOAT3(-1.5 * CollisionScale, 3.85 * CollisionScale, -5.2 * CollisionScale);
 
-    vertices[4].Pos = XMFLOAT3(8.8f, 6.8f, -27.6);
+    vertices[4].Pos = XMFLOAT3(8.8f * CollisionScale, 6.8f * CollisionScale, -27.6 * CollisionScale);
 
-    vertices[5].Pos = XMFLOAT3(-8.8f, 6.8f, -27.6);
+    vertices[5].Pos = XMFLOAT3(-8.8f * CollisionScale, 6.8f * CollisionScale, -27.6 * CollisionScale);
 
-    vertices[6].Pos = XMFLOAT3(8.8f, 6.8f, 9.1);
+    vertices[6].Pos = XMFLOAT3(8.8f * CollisionScale, 6.8f * CollisionScale, 9.1 * CollisionScale);
 
-    vertices[7].Pos = XMFLOAT3(-8.8f, 6.8f, 9.1);
+    vertices[7].Pos = XMFLOAT3(-8.8f * CollisionScale, 6.8f * CollisionScale, 9.1 * CollisionScale);
 
-    vertices[8].Pos = XMFLOAT3(9.25f, 7.0f, -27.15f);
+    vertices[8].Pos = XMFLOAT3(9.25f * CollisionScale, 6.8f * CollisionScale, -27.15f * CollisionScale);
 
-    vertices[9].Pos = XMFLOAT3(-10.5f, 7.0f, -27.15f);
+    vertices[9].Pos = XMFLOAT3(-10.5f * CollisionScale, 6.8f * CollisionScale, -27.15f * CollisionScale);
 
-    vertices[10].Pos = XMFLOAT3(10.6f, 6.9f, 8.65f);
+    vertices[10].Pos = XMFLOAT3(10.6f * CollisionScale, 6.9f * CollisionScale, 8.65f * CollisionScale);
 
-    vertices[11].Pos = XMFLOAT3(-9.15f, 6.9f, 8.65f);
+    vertices[11].Pos = XMFLOAT3(-9.15f * CollisionScale, 6.9f * CollisionScale, 8.65f * CollisionScale);
 
-    vertices[12].Pos = XMFLOAT3(1.5f, 11.3f, 0.0f);
+    vertices[12].Pos = XMFLOAT3(1.5f * CollisionScale, 11.3f * CollisionScale, 0.0f * CollisionScale);
 
-    vertices[13].Pos = XMFLOAT3(-1.5f, 11.3f, 0.0f);
+    vertices[13].Pos = XMFLOAT3(-1.5f * CollisionScale, 11.3f * CollisionScale, 0.0f * CollisionScale);
 
     for (int i = 0; i < flameCount; i++)
     {
-        vertices[i].Size = XMFLOAT2(2.0f, 2.0f);
+        vertices[i].Size = XMFLOAT2(2.0f * CollisionScale, 2.0f * CollisionScale);
     }
 
     //vertices[4].Pos = XMFLOAT3(-1.5, 3.5, -5.0);
@@ -2050,8 +1964,8 @@ void ShapesApp::BuildMaterials()
 void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation,float angle, std::string shapeName,std::string materialName, XMFLOAT3 texscale, RenderLayer layer)
 {
     auto temp = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&temp->World, XMMatrixScaling(scaling.x, scaling.y, scaling.z) * XMMatrixRotationY(XMConvertToRadians(angle)) * XMMatrixTranslation(translation.x, translation.y + (0.5*scaling.y), translation.z));
-    XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(texscale.x, texscale.y, texscale.z));
+    XMStoreFloat4x4(&temp->World, XMMatrixScaling(scaling.x * CollisionScale, scaling.y * CollisionScale, scaling.z * CollisionScale) * XMMatrixRotationY(XMConvertToRadians(angle)) * XMMatrixTranslation(translation.x * CollisionScale, translation.y * CollisionScale + (0.5*scaling.y* CollisionScale), translation.z * CollisionScale));
+    XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(texscale.x * CollisionScale, texscale.y * CollisionScale, texscale.z * CollisionScale));
 
     temp->ObjCBIndex = objIndex++;
     temp->Geo = mGeometries["shapeGeo"].get();
@@ -2073,9 +1987,9 @@ void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 tr
 void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, XMFLOAT3 angle, std::string shapeName, std::string materialName, XMFLOAT3 texscale, RenderLayer layer)
 {
     auto temp = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&temp->World, XMMatrixScaling(scaling.x, scaling.y, scaling.z) * XMMatrixRotationRollPitchYaw(XMConvertToRadians(angle.x), 
-        XMConvertToRadians(angle.y), XMConvertToRadians(angle.z))* XMMatrixTranslation(translation.x, translation.y + (0.5 * scaling.y), translation.z));
-    XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(texscale.x, texscale.y, texscale.z));
+    XMStoreFloat4x4(&temp->World, XMMatrixScaling(scaling.x * CollisionScale, scaling.y * CollisionScale, scaling.z * CollisionScale) * XMMatrixRotationRollPitchYaw(XMConvertToRadians(angle.x),
+        XMConvertToRadians(angle.y), XMConvertToRadians(angle.z))* XMMatrixTranslation(translation.x * CollisionScale, translation.y* CollisionScale + (0.5 * scaling.y* CollisionScale), translation.z* CollisionScale));
+    XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(texscale.x * CollisionScale, texscale.y * CollisionScale, texscale.z * CollisionScale));
 
     temp->ObjCBIndex = objIndex++;
     temp->Geo = mGeometries["shapeGeo"].get();
@@ -2092,25 +2006,25 @@ void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 tr
     mAllRitems.push_back(std::move(temp));
 }
 
-void ShapesApp::createBillboardInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, float angle, std::string shapeName, std::string materialName, XMFLOAT3 texscale)
-{
-    auto flameSpritesRitem = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&flameSpritesRitem->World, XMMatrixScaling(scaling.x, scaling.y, scaling.z) * XMMatrixRotationY(XMConvertToRadians(angle)) * XMMatrixTranslation(translation.x, translation.y + (0.5 * scaling.y), translation.z));
-    //XMStoreFloat4x4(&flameSpritesRitem->TexTransform, XMMatrixScaling(texscale.x, texscale.y, texscale.z));
-
-    flameSpritesRitem->ObjCBIndex = objIndex++;
-    flameSpritesRitem->Geo = mGeometries["flameSpritesGeo"].get();
-    flameSpritesRitem->Mat = mMaterials[materialName].get();
-
-    //step2
-    flameSpritesRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
-    flameSpritesRitem->IndexCount = flameSpritesRitem->Geo->DrawArgs[shapeName].IndexCount;
-    flameSpritesRitem->StartIndexLocation = flameSpritesRitem->Geo->DrawArgs[shapeName].StartIndexLocation;
-    flameSpritesRitem->BaseVertexLocation = flameSpritesRitem->Geo->DrawArgs[shapeName].BaseVertexLocation;
-
-    mRitemLayer[(int)RenderLayer::AlphaTestedTreeSprites].push_back(flameSpritesRitem.get());
-    mAllRitems.push_back(std::move(flameSpritesRitem));
-}
+//void ShapesApp::createBillboardInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, float angle, std::string shapeName, std::string materialName, XMFLOAT3 texscale)
+//{
+//    auto flameSpritesRitem = std::make_unique<RenderItem>();
+//    XMStoreFloat4x4(&flameSpritesRitem->World, XMMatrixScaling(scaling.x, scaling.y, scaling.z) * XMMatrixRotationY(XMConvertToRadians(angle)) * XMMatrixTranslation(translation.x, translation.y + (0.5 * scaling.y), translation.z));
+//    //XMStoreFloat4x4(&flameSpritesRitem->TexTransform, XMMatrixScaling(texscale.x, texscale.y, texscale.z));
+//
+//    flameSpritesRitem->ObjCBIndex = objIndex++;
+//    flameSpritesRitem->Geo = mGeometries["flameSpritesGeo"].get();
+//    flameSpritesRitem->Mat = mMaterials[materialName].get();
+//
+//    //step2
+//    flameSpritesRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+//    flameSpritesRitem->IndexCount = flameSpritesRitem->Geo->DrawArgs[shapeName].IndexCount;
+//    flameSpritesRitem->StartIndexLocation = flameSpritesRitem->Geo->DrawArgs[shapeName].StartIndexLocation;
+//    flameSpritesRitem->BaseVertexLocation = flameSpritesRitem->Geo->DrawArgs[shapeName].BaseVertexLocation;
+//
+//    mRitemLayer[(int)RenderLayer::AlphaTestedTreeSprites].push_back(flameSpritesRitem.get());
+//    mAllRitems.push_back(std::move(flameSpritesRitem));
+//}
 
 void ShapesApp::createBillBoards(UINT& objIndex)
 {
@@ -2173,8 +2087,8 @@ void ShapesApp::BuildRenderItems()
 	UINT objCBIndex = 0;
 
     auto wavesRitem = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&wavesRitem->World, XMMatrixScaling(1.5f, 1.0f, 1.5f) * XMMatrixRotationY(XMConvertToRadians(-45.0f)) * XMMatrixTranslation(10.0f, -5.5f, -30.0f));
-    XMStoreFloat4x4(&wavesRitem->TexTransform, XMMatrixScaling(5.0f, 5.0f, 1.0f));
+    XMStoreFloat4x4(&wavesRitem->World, XMMatrixScaling(1.5f * CollisionScale, 1.0f * CollisionScale, 1.5f * CollisionScale) * XMMatrixRotationY(XMConvertToRadians(-45.0f)) * XMMatrixTranslation(10.0f * CollisionScale, -5.5f * CollisionScale, -30.0f * CollisionScale));
+    XMStoreFloat4x4(&wavesRitem->TexTransform, XMMatrixScaling(5.0f * CollisionScale, 5.0f * CollisionScale, 1.0f * CollisionScale));
     wavesRitem->ObjCBIndex = objCBIndex++;
     wavesRitem->Mat = mMaterials["water"].get();
     wavesRitem->Geo = mGeometries["waterGeo"].get();
@@ -2190,8 +2104,8 @@ void ShapesApp::BuildRenderItems()
     //step5
 
     auto gridRitem = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&gridRitem->World, XMMatrixRotationY(XMConvertToRadians(-45.0f)) * XMMatrixTranslation(10.0f, -1.5f, -30.0f));
-    XMStoreFloat4x4(&gridRitem->TexTransform, XMMatrixScaling(10.0f, 10.0f, 1.0f));
+    XMStoreFloat4x4(&gridRitem->World, XMMatrixScaling(1.0f * CollisionScale, 1.0f * CollisionScale, 1.0f * CollisionScale)* XMMatrixRotationY(XMConvertToRadians(-45.0f)) * XMMatrixTranslation(10.0f * CollisionScale, -1.5f * CollisionScale, -30.0f * CollisionScale));
+    XMStoreFloat4x4(&gridRitem->TexTransform, XMMatrixScaling(10.0f * CollisionScale, 10.0f * CollisionScale, 1.0f * CollisionScale));
     gridRitem->ObjCBIndex = objCBIndex++;
     gridRitem->Mat = mMaterials["grass"].get();
     gridRitem->Geo = mGeometries["landGeo"].get();
@@ -2212,6 +2126,7 @@ void ShapesApp::BuildRenderItems()
     CreateMaze(objCBIndex, -7.0, -27);
     
     //Test shape for lighting
+    createShapeInWorld(objCBIndex, XMFLOAT3(3.0f, 3.0f, 3.0f), XMFLOAT3(0, 0.0f, -35.0f), 0.0f, "box", "sandbrick", XMFLOAT3(0.5f, 1.0f, 10.5f), RenderLayer::Opaque);
     //createShapeInWorld(objCBIndex, XMFLOAT3(5.0f, 5.0f, 5.0f), XMFLOAT3(0.0, 10.0, -20.0), 0.0f, "box", "woodV");
 
 }
@@ -2667,90 +2582,90 @@ void ShapesApp::createTorch(UINT& objIndex)
     int lightNumber = 2;
 
 
-    mMainPassCB.Lights[lightNumber].Position = { 4.0, 3.5, -30.5 };
-    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
-    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { 4.0 * CollisionScale, 3.5 * CollisionScale, -30.5 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0 * CollisionScale,0.5 * CollisionScale,0.0 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1 * CollisionScale;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3 * CollisionScale;
     lightNumber++;
 
-    mMainPassCB.Lights[lightNumber].Position = { -4.0, 3.5, -30.5};
-    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
-    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { -4.0 * CollisionScale, 3.5 * CollisionScale, -30.5 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0 * CollisionScale,0.5 * CollisionScale,0.0 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1 * CollisionScale;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3 * CollisionScale;
     lightNumber++;
 
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(1.5, 2, -5.0), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-1.5, 2, -5.0), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
-    mMainPassCB.Lights[lightNumber].Position = { 1.5, 3.5, -5.5};
-    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
-    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { 1.5 * CollisionScale, 3.5 * CollisionScale, -5.5 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0 * CollisionScale,0.5 * CollisionScale,0.0 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1 * CollisionScale;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3 * CollisionScale;
     lightNumber++;
-    mMainPassCB.Lights[lightNumber].Position = { -1.5, 3.5, -5.5};
-    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
-    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { -1.5 * CollisionScale, 3.5 * CollisionScale, -5.5 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0 * CollisionScale,0.5 * CollisionScale,0.0 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1 * CollisionScale;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3 * CollisionScale;
     lightNumber++;
 
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(8.75f, 5.0f, -27.6f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-8.75f, 5.0f, -27.6f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f),RenderLayer::Opaque);
 
-    mMainPassCB.Lights[lightNumber].Position = { 8.2f, 6.8f, -28.3 };
-    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
-    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { 8.2f * CollisionScale, 6.8f * CollisionScale, -28.3 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0 * CollisionScale,0.5 * CollisionScale,0.0 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1 * CollisionScale;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3 * CollisionScale;
     lightNumber++;
-    mMainPassCB.Lights[lightNumber].Position = { -8.2f, 6.8f, -28.3f };
-    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
-    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { -8.2f * CollisionScale, 6.8f * CollisionScale, -28.3f * CollisionScale };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0 * CollisionScale,0.5 * CollisionScale,0.0 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1 * CollisionScale;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3 * CollisionScale;
     lightNumber++;
 
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(8.75f, 5.0f, 9.1f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-8.75f, 5.0f, 9.1f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
-    mMainPassCB.Lights[lightNumber].Position = { 8.2f, 6.8f, 9.8 };
-    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
-    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { 8.2f * CollisionScale, 6.8f * CollisionScale, 9.8 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0 * CollisionScale,0.5 * CollisionScale,0.0 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1 * CollisionScale;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3 * CollisionScale;
     lightNumber++;
-    mMainPassCB.Lights[lightNumber].Position = { -8.2f, 6.8f, 9.8f };
-    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
-    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { -8.2f * CollisionScale, 6.8f * CollisionScale, 9.8f * CollisionScale };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0 * CollisionScale,0.5 * CollisionScale,0.0 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1 * CollisionScale;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3 * CollisionScale;
     lightNumber++;
 
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(9.25f, 5.0f, -27.23f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-10.5f, 5.0f, -27.23f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
-    mMainPassCB.Lights[lightNumber].Position = { 9.25f, 7.0f, -26.5f };
-    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
-    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { 9.25f * CollisionScale, 7.0f * CollisionScale, -26.5f * CollisionScale };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0 * CollisionScale,0.5 * CollisionScale,0.0 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1 * CollisionScale;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3 * CollisionScale;
     lightNumber++;
-    mMainPassCB.Lights[lightNumber].Position = { -10.5f, 7.0f, -26.5f };
-    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
-    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { -10.5f * CollisionScale, 7.0f * CollisionScale, -26.5f * CollisionScale };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0 * CollisionScale,0.5 * CollisionScale,0.0 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1 * CollisionScale;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3 * CollisionScale;
     lightNumber++;
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(10.6f, 5.0f, 8.73f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-9.15f, 5.0f, 8.73f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
-    mMainPassCB.Lights[lightNumber].Position = { 10.1f, 7.0f, 8.0f };
-    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
-    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { 10.1f * CollisionScale, 7.0f * CollisionScale, 8.0f * CollisionScale };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0 * CollisionScale,0.5 * CollisionScale,0.0 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1 * CollisionScale;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3 * CollisionScale;
     lightNumber++;
-    mMainPassCB.Lights[lightNumber].Position = { -9.15f, 7.0f, 8.0f };
-    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
-    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { -9.15f * CollisionScale, 7.0f * CollisionScale, 8.0f * CollisionScale };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0 * CollisionScale,0.5 * CollisionScale,0.0 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1 * CollisionScale;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3 * CollisionScale;
     lightNumber++;
 
 
@@ -2758,15 +2673,15 @@ void ShapesApp::createTorch(UINT& objIndex)
 
     createShapeInWorld(objIndex, XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(-1.5f, 9.5f, 0.0f), XMFLOAT3(0.0f, 0.0f, 180.0f), "torchHandle", "wroughtIron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
-    mMainPassCB.Lights[lightNumber].Position = { 2.0f, 12.5f, -1.0f };
-    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
-    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { 2.0f * CollisionScale, 12.5f * CollisionScale, -1.0f * CollisionScale };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0 * CollisionScale,0.5 * CollisionScale,0.0 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1 * CollisionScale;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3 * CollisionScale;
     lightNumber++;
-    mMainPassCB.Lights[lightNumber].Position = { -2.0f, 12.5f, -1.0f };
-    mMainPassCB.Lights[lightNumber].Strength = { 1.0,0.5,0.0 };
-    mMainPassCB.Lights[lightNumber].FalloffStart = 1;
-    mMainPassCB.Lights[lightNumber].FalloffEnd = 3;
+    mMainPassCB.Lights[lightNumber].Position = { -2.0f * CollisionScale, 12.5f * CollisionScale, -1.0f * CollisionScale };
+    mMainPassCB.Lights[lightNumber].Strength = { 1.0 * CollisionScale,0.5 * CollisionScale,0.0 * CollisionScale };
+    mMainPassCB.Lights[lightNumber].FalloffStart = 1 * CollisionScale;
+    mMainPassCB.Lights[lightNumber].FalloffEnd = 3 * CollisionScale;
     lightNumber++;
 
 
