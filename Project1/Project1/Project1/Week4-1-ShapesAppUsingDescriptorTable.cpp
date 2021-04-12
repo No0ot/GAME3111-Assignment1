@@ -248,7 +248,7 @@ bool ShapesApp::Initialize()
     mCbvSrvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     mWaves = std::make_unique<Waves>(128, 128, 1.0f, 0.03f, 4.0f, 0.2f);
-    mCamera.SetPosition(0.0f, 5.0f, -40.0f);
+    mCamera.SetPosition(0.0f, 35.0f, -135.0f);
 
     LoadTextures();
     BuildRootSignature();
