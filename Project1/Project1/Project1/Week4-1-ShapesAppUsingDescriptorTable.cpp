@@ -16,7 +16,7 @@
 #include <queue>
 #include <vector>
 
-#define CollisionScale 3
+#define CollisionScale 4
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -682,7 +682,7 @@ void ShapesApp::CheckCollisions()
     float x = P.x;
     float y = P.y;
     float z = P.z;
-    float CameraExtents = 2.5f / 2.0f;
+    float CameraExtents = 3.5f / 2.0f;
     float pMinX = P.x - CameraExtents;
     float pMinY = P.y - CameraExtents;
     float pMinZ = P.z - CameraExtents;
@@ -1222,50 +1222,36 @@ void ShapesApp::BuildTreeSpritesGeometry()
         XMFLOAT2 Size;
     };
 
-    static const int treeCount = 30;
-    std::array<TreeSpriteVertex, 30> vertices;
-
-    vertices[0].Pos = XMFLOAT3(-17, 3, -10);
-    vertices[1].Pos = XMFLOAT3(-17, 3.5, -5);
-    vertices[2].Pos = XMFLOAT3(-17, 4.5, -0);
-    vertices[3].Pos = XMFLOAT3(-17, 5.5, 5);
-    vertices[4].Pos = XMFLOAT3(-17, 8, 10);
-    vertices[5].Pos = XMFLOAT3(-17, 11, 15);
-    vertices[6].Pos = XMFLOAT3(-12, 11, 15);
-    vertices[7].Pos = XMFLOAT3(-7, 10.5, 15);
-    vertices[8].Pos = XMFLOAT3(-2, 9, 15);
-    vertices[9].Pos = XMFLOAT3(3, 6, 15);
-    vertices[10].Pos = XMFLOAT3(8, 5, 15);
-    vertices[11].Pos = XMFLOAT3(13, 3, 15);
-    vertices[12].Pos = XMFLOAT3(17, 2, 15);
-    vertices[13].Pos = XMFLOAT3(17, 5, 10);
-    vertices[14].Pos = XMFLOAT3(17, 6, 5);
-    vertices[15].Pos = XMFLOAT3(17, 7, 0);
-    vertices[16].Pos = XMFLOAT3(17, 7, -5);
-    vertices[17].Pos = XMFLOAT3(17, 8, -10);
-    vertices[18].Pos = XMFLOAT3(-15, 22, 45);
-    vertices[19].Pos = XMFLOAT3(-10, 24, 45);
-    vertices[20].Pos = XMFLOAT3(-15, 22, 50);
-    vertices[21].Pos = XMFLOAT3(-10, 22, 50);
-    vertices[22].Pos = XMFLOAT3(42, 13, 3);
-    vertices[23].Pos = XMFLOAT3(55, 16.5, 20);
-    vertices[24].Pos = XMFLOAT3(95, 10.5, -35);
-    vertices[25].Pos = XMFLOAT3(100, 19.5, -25);
-    vertices[26].Pos = XMFLOAT3(-10, 2.5, -25);
-    vertices[27].Pos = XMFLOAT3(10, 3.5, -35);
-    vertices[28].Pos = XMFLOAT3(-30, 2.5, -45);
-    vertices[29].Pos = XMFLOAT3(25, 6.5, -55);
+    static const int treeCount = 33;
+    std::array<TreeSpriteVertex, 37> vertices;
 
     for (int i = 0; i < treeCount; i++)
     {
-        vertices[i].Size = XMFLOAT2(10, 10);
+        if (i > treeCount / 2)
+        {
+            vertices[i].Pos = XMFLOAT3(33, 6, -105 + ((i -17) * 5));
+        }
+        else
+        {
+            vertices[i].Pos = XMFLOAT3(-33, 6, -105 + (i * 5));
+        }
+    }
+    vertices[33].Pos = XMFLOAT3(25, 6, -27);
+    vertices[34].Pos = XMFLOAT3(-25, 6, -27);
+    vertices[35].Pos = XMFLOAT3(13, 6, -27);
+    vertices[36].Pos = XMFLOAT3(-13,6, -27);
+
+    for (int i = 0; i < treeCount + 4; i++)
+    {
+        vertices[i].Size = XMFLOAT2(10, 15);
     }
 
-    std::array<std::uint16_t, 30> indices =
+    std::array<std::uint16_t, 37> indices =
     {
         0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
         16,17, 18, 19, 20, 21, 22, 23, 24, 25,
-        26, 27, 28, 29
+        26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
+        36
     };
 
 
@@ -2032,26 +2018,6 @@ void ShapesApp::createShapeInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 tr
     mAllRitems.push_back(std::move(temp));
 }
 
-//void ShapesApp::createBillboardInWorld(UINT& objIndex, XMFLOAT3 scaling, XMFLOAT3 translation, float angle, std::string shapeName, std::string materialName, XMFLOAT3 texscale)
-//{
-//    auto flameSpritesRitem = std::make_unique<RenderItem>();
-//    XMStoreFloat4x4(&flameSpritesRitem->World, XMMatrixScaling(scaling.x, scaling.y, scaling.z) * XMMatrixRotationY(XMConvertToRadians(angle)) * XMMatrixTranslation(translation.x, translation.y + (0.5 * scaling.y), translation.z));
-//    //XMStoreFloat4x4(&flameSpritesRitem->TexTransform, XMMatrixScaling(texscale.x, texscale.y, texscale.z));
-//
-//    flameSpritesRitem->ObjCBIndex = objIndex++;
-//    flameSpritesRitem->Geo = mGeometries["flameSpritesGeo"].get();
-//    flameSpritesRitem->Mat = mMaterials[materialName].get();
-//
-//    //step2
-//    flameSpritesRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
-//    flameSpritesRitem->IndexCount = flameSpritesRitem->Geo->DrawArgs[shapeName].IndexCount;
-//    flameSpritesRitem->StartIndexLocation = flameSpritesRitem->Geo->DrawArgs[shapeName].StartIndexLocation;
-//    flameSpritesRitem->BaseVertexLocation = flameSpritesRitem->Geo->DrawArgs[shapeName].BaseVertexLocation;
-//
-//    mRitemLayer[(int)RenderLayer::AlphaTestedTreeSprites].push_back(flameSpritesRitem.get());
-//    mAllRitems.push_back(std::move(flameSpritesRitem));
-//}
-
 void ShapesApp::createBillBoards(UINT& objIndex)
 {
     auto treeSpritesRitem = std::make_unique<RenderItem>();
@@ -2150,11 +2116,6 @@ void ShapesApp::BuildRenderItems()
     createMainCastle(objCBIndex);
     createTorch(objCBIndex);
     CreateMaze(objCBIndex, -7.0, -27);
-    
-    //Test shape for lighting
-    //createShapeInWorld(objCBIndex, XMFLOAT3(3.0f, 3.0f, 3.0f), XMFLOAT3(0, 0.0f, -35.0f), 0.0f, "box", "sandbrick", XMFLOAT3(0.5f, 1.0f, 10.5f), RenderLayer::Opaque);
-    //createShapeInWorld(objCBIndex, XMFLOAT3(5.0f, 5.0f, 5.0f), XMFLOAT3(0.0, 10.0, -20.0), 0.0f, "box", "woodV");
-
 }
 
 
@@ -2276,35 +2237,35 @@ void ShapesApp::createWall(UINT& objIndex, XMFLOAT3 location, float rotation,flo
     //Creates pirapits for tops of walls
     if (rotation == 0.0f)
     {
-        for (int i = 0; i < wallSize * 2; i++)
+        for (int i = 0; i < wallSize * 2 -1; i++)
         {
             float temp = i;
 
             if (i % 2 == 0)
             {
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - wallSize/2.0f + (temp / 2), location.y + 5.0f, location.z - 1.0f * sign), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - wallSize/2.0f + (temp / 2), location.y + 5.0f, location.z ), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f), RenderLayer::Opaque);
                 //Adds pyramid top to pirapites
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - wallSize / 2.0f + (temp / 2), location.y + 6.0f, location.z - 1.0f *sign), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - wallSize / 2.0f + (temp / 2), location.y + 6.0f, location.z ), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
             }
             else
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - wallSize / 2. + (temp / 2), location.y + 5.0f, location.z - 1.0f * sign), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - wallSize / 2. + (temp / 2), location.y + 5.0f, location.z ), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f), RenderLayer::Opaque);
         }
     }
     else
     {
-        for (int i = 0; i < wallSize * 2; i++)
+        for (int i = 0; i < wallSize * 2- 1; i++)
         {
             float temp = i;
 
             if (i % 2 == 0)
             {
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z -wallSize / 2.0f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z +1-wallSize / 2.0f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f), RenderLayer::Opaque);
                 //Adds pyramid top to pirapites
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 6.0f, location.z - wallSize / 2.0f + (temp / 2)), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 6.0f, location.z +1- wallSize / 2.0f + (temp / 2)), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
             }
             else
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z - 1.0f - wallSize / 2.0f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f), RenderLayer::Opaque);
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z - 1.0f - wallSize / 2.0f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z - 0.0f - wallSize / 2.0f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - 1.0f * sign, location.y + 5.0f, location.z - 0.0f - wallSize / 2.0f + (temp / 2)), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f), RenderLayer::Opaque);
         }
     }
 
@@ -2320,13 +2281,13 @@ void ShapesApp::createMainGate(UINT& objIndex, XMFLOAT3 location)
     //Creates fills in gap below pirapits at center of wall
     createShapeInWorld(objIndex, XMFLOAT3(6.0f, 1.0f, 2.0f), XMFLOAT3(location.x , location.y + 4.0f, location.z), 0.0f, "box", "sandbrick", XMFLOAT3(1.0f, 0.125f, 1.0f), RenderLayer::Opaque);
     //Creats "drawbridge" 
-    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 1.0f, 5.0f), XMFLOAT3(location.x, location.y + 0.2, location.z-3.5f), 0.0f, "wedge", "woodV", XMFLOAT3(2.0f, 2.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(6.0f, 1.0f, 4.0f), XMFLOAT3(location.x, location.y + 0.7, location.z-2.5f), 0.0f, "wedge", "woodV", XMFLOAT3(2.0f, 2.0f, 1.0f), RenderLayer::Opaque);
     //Creates thin platform "walkway" for better color variety
     createShapeInWorld(objIndex, XMFLOAT3(18.0f, 0.1f, 2.0f), XMFLOAT3(location.x, location.y + 5.0f, location.z), 0.0f, "box", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
     //Creates left drawbridge rope
-    createShapeInWorld(objIndex, XMFLOAT3(0.05f, 0.05f, 2.75f), XMFLOAT3(location.x - 3.0f, location.y + 2.0f, location.z - 2.75f), XMFLOAT3(-45.0f,0.0f,60.0f), "blackCylinder", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(0.05f, 0.05f, 2.25f), XMFLOAT3(location.x - 3.0f, location.y + 2.0f, location.z - 2.5f), XMFLOAT3(-45.0f,0.0f,60.0f), "blackCylinder", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
     //Creates right drawbridge rope
-    createShapeInWorld(objIndex, XMFLOAT3(0.05f, 0.05f, 2.75f), XMFLOAT3(location.x + 3.0f, location.y + 2.0f, location.z - 2.75f), XMFLOAT3(-45.0f, 0.0f, 40.0f), "blackCylinder", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(0.05f, 0.05f, 2.25f), XMFLOAT3(location.x + 3.0f, location.y + 2.0f, location.z - 2.5f), XMFLOAT3(-45.0f, 0.0f, 40.0f), "blackCylinder", "iron", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
     
     //Creates pirapits for tops of walls
     for (int i = 0; i < 36; i++)
@@ -2472,10 +2433,10 @@ void ShapesApp::createMainCastle(UINT& objIndex)
     createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.0f, 2.0f), XMFLOAT3(0.0, 10.0, -5.0), 0.0f, "box", "woodV", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 
     // Platform Walls
-    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.5f, 10.0f), XMFLOAT3(6.0, 10.0, 0.0), 0.0f, "box", "sandbrick", XMFLOAT3(2.5f, 0.2f, 1.0f), RenderLayer::Opaque);
-    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.5f, 10.0f), XMFLOAT3(-6.0, 10.0, 0.0), 0.0f, "box", "sandbrick", XMFLOAT3(2.5f, 0.2f, 1.0f), RenderLayer::Opaque);
-    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.5f, 0.5f), XMFLOAT3(0.0, 10.0, 6.0), 0.0f, "box", "sandbrick", XMFLOAT3(2.5f, 0.2f, 1.0f), RenderLayer::Opaque);
-    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.5f, 0.5f), XMFLOAT3(0.0, 10.0, -6.0), 0.0f, "box", "sandbrick", XMFLOAT3(2.5f, 0.2f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.5f, 10.0f), XMFLOAT3(6.0, 10.1, 0.0), 0.0f, "box", "sandbrick", XMFLOAT3(2.5f, 0.2f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.5f, 10.0f), XMFLOAT3(-6.0, 10.1, 0.0), 0.0f, "box", "sandbrick", XMFLOAT3(2.5f, 0.2f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.5f, 0.5f), XMFLOAT3(0.0, 10.1, 6.0), 0.0f, "box", "sandbrick", XMFLOAT3(2.5f, 0.2f, 1.0f), RenderLayer::Opaque);
+    createShapeInWorld(objIndex, XMFLOAT3(10.0f, 1.5f, 0.5f), XMFLOAT3(0.0, 10.1, -6.0), 0.0f, "box", "sandbrick", XMFLOAT3(2.5f, 0.2f, 1.0f), RenderLayer::Opaque);
 
     // Castle Studs
     for (int i = 0; i < 3; i++)
@@ -2726,13 +2687,12 @@ void ShapesApp::CreateMaze(UINT& objIndex, int xOffset, int zOffset)
                 float x = col / 2.0f + xOffset;
                 float z = row / 2.0f + zOffset;
 
-                XMVECTOR tempPos = XMVectorSet(x, 0, z, 0);
-
-                float y = GetHillsHeight(col / 2 + xOffset + 10, row / 2 + zOffset - 30);
                 createShapeInWorld(objIndex, XMFLOAT3(0.5f, 3.0f, 0.5f), XMFLOAT3(x, 0, z), 0.0f, "box", "hedge", XMFLOAT3(0.1f, 0.5f, 1.0f), RenderLayer::Opaque);
             }
         }
     }
     createShapeInWorld(objIndex, XMFLOAT3(15.0f, 1.0f, 20.0f), XMFLOAT3(0, -0.0f, -17.5f), 0.0f, "box", "grass", XMFLOAT3(2.0f, 4.0f, 10.5f), RenderLayer::Opaque);
+    //Steps down from maze to castle door
+    createShapeInWorld(objIndex, XMFLOAT3(3.0f, 1.0f, 1.0f), XMFLOAT3(0.0, 0, -7), XMFLOAT3(0.0f, 180.0f, 0.0f), "wedge", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
 }
 
