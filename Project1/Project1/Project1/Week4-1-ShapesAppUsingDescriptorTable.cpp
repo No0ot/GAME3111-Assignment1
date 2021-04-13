@@ -248,7 +248,9 @@ bool ShapesApp::Initialize()
     mCbvSrvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     mWaves = std::make_unique<Waves>(128, 128, 1.0f, 0.03f, 4.0f, 0.2f);
-    mCamera.SetPosition(0.0f, 35.0f, -135.0f);
+    mCamera.SetPosition(75.0f, 80.0f, -190.0f);
+    mCamera.Pitch(0.40);
+    mCamera.RotateY(-0.60);
 
     LoadTextures();
     BuildRootSignature();
@@ -644,7 +646,7 @@ void ShapesApp::UpdateWaves(const GameTimer& gt)
         int i = MathHelper::Rand(4, mWaves->RowCount() - 5);
         int j = MathHelper::Rand(4, mWaves->ColumnCount() - 5);
 
-        float r = MathHelper::RandF(0.2f, 0.5f);
+        float r = MathHelper::RandF(0.05f, 0.2f);
 
         mWaves->Disturb(i, j, r);
     }
@@ -760,7 +762,6 @@ void ShapesApp::CheckCollisions()
 
             mCamera.SetPosition(newposition);
 
-            ::OutputDebugStringA((char*)thestring2.c_str());
         }
        
     }
@@ -2096,7 +2097,7 @@ void ShapesApp::BuildRenderItems()
     //step5
 
     auto gridRitem = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&gridRitem->World, XMMatrixScaling(0.5f * CollisionScale, 0.5f * CollisionScale, 0.5f * CollisionScale)* XMMatrixRotationY(XMConvertToRadians(0.0f)) * XMMatrixTranslation(5.0f * CollisionScale, -0.5f * CollisionScale, -5.0f * CollisionScale));
+    XMStoreFloat4x4(&gridRitem->World, XMMatrixScaling(0.5f * CollisionScale, 0.5f * CollisionScale, 0.5f * CollisionScale)* XMMatrixRotationY(XMConvertToRadians(0.0f)) * XMMatrixTranslation(5.0f * CollisionScale -15, -0.5f * CollisionScale, -5.0f * CollisionScale - 10));
     XMStoreFloat4x4(&gridRitem->TexTransform, XMMatrixScaling(10.0f * CollisionScale, 10.0f * CollisionScale, 1.0f * CollisionScale));
     gridRitem->ObjCBIndex = objCBIndex++;
     gridRitem->Mat = mMaterials["grass"].get();
@@ -2243,12 +2244,12 @@ void ShapesApp::createWall(UINT& objIndex, XMFLOAT3 location, float rotation,flo
 
             if (i % 2 == 0)
             {
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - wallSize/2.0f + (temp / 2), location.y + 5.0f, location.z ), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 1.0f, 0.5f), XMFLOAT3(location.x - wallSize/2.0f + (temp / 2), location.y + 5.0f, location.z -sign ), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.25f, 1.0f), RenderLayer::Opaque);
                 //Adds pyramid top to pirapites
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - wallSize / 2.0f + (temp / 2), location.y + 6.0f, location.z ), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - wallSize / 2.0f + (temp / 2), location.y + 6.0f, location.z - sign), 45.0f, "pyramid", "stone", XMFLOAT3(1.0f, 1.0f, 1.0f), RenderLayer::Opaque);
             }
             else
-                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - wallSize / 2. + (temp / 2), location.y + 5.0f, location.z ), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f), RenderLayer::Opaque);
+                createShapeInWorld(objIndex, XMFLOAT3(0.5f, 0.5f, 0.5f), XMFLOAT3(location.x - wallSize / 2. + (temp / 2), location.y + 5.0f, location.z - sign), rotation, "box", "sandbrick", XMFLOAT3(0.25f, 0.125f, 1.0f), RenderLayer::Opaque);
         }
     }
     else
